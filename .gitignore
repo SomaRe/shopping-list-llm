@@ -1,0 +1,6 @@
+.aider*
+*.db
+*__pycache__
+*.pyc
+codesnap.yml
+.env

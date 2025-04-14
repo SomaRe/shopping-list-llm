@@ -1,0 +1,21 @@
+{
+	"name": "Debian",
+	"image": "mcr.microsoft.com/devcontainers/base:bullseye",
+
+	"features": {
+		"ghcr.io/va-h/devcontainers-features/uv:1" : {},
+		"ghcr.io/devcontainers-community/features/deno:1" : {}
+	},
+
+	"postCreateCommand": "sudo apt-get update && sudo apt-get install -y xclip wl-clipboard && sudo curl -L -o /usr/local/bin/codesnap 'https://github.com/SomaRe/codesnap/releases/latest/download/codesnap-linux-amd64' && sudo chmod +x /usr/local/bin/codesnap",
+
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"bradlc.vscode-tailwindcss",
+				"denoland.vscode-deno"
+			]
+		}
+	}
+}
