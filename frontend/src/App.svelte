@@ -72,9 +72,7 @@
 			}
 		}
 		loadData();
-        // This effect runs once on component mount because its dependencies (api) don't change.
-        // To re-run, you'd need a reactive dependency or call loadData manually.
-	}, []); // Empty dependency array means run once
+	}, []); // Empty dependency array means run once on mount
 
     // --- Functions ---
     async function handleAddItem(payload: ItemPayload) {
