@@ -24,11 +24,13 @@
         }
     }
 
-    // Scroll when messages change
     $effect(() => {
         if (messages.length > 0) {
             scrollToBottom();
         }
+        return () => {
+            // Cleanup if needed
+        };
     });
 
     async function handleSend() {

@@ -53,26 +53,34 @@
 	// --- Effects ---
 	// Fetch initial data on mount
 	$effect(() => {
+		let isActive = true;
 		async function loadData() {
 			$isLoading = true;
 			$error = null;
 			try {
-                // Fetch in parallel
 				const [fetchedCategories, fetchedItems] = await Promise.all([
 					api.fetchCategories(),
 					api.fetchItems()
 				]);
-				categories = fetchedCategories;
-				items = fetchedItems;
+				if (isActive) {
+					categories = fetchedCategories;
+					items = fetchedItems;
+				}
 			} catch (err: any) {
-				console.error("Failed to load data:", err);
-				$error = err.message || "Could not fetch grocery list.";
+				if (isActive) {
+					console.error("Failed to load data:", err);
+					$error = err.message || "Could not fetch grocery list.";
+				}
 			} finally {
-				$isLoading = false;
+				if (isActive) $isLoading = false;
 			}
 		}
 		loadData();
-	}, []); // Empty dependency array means run once on mount
+		
+		return () => {
+			isActive = false;
+		};
+	});
 
     // --- Functions ---
     async function handleAddItem(payload: ItemPayload) {

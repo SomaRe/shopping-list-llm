@@ -27,14 +27,17 @@
 	$effect(() => {
 		if (item) {
             editableItem = {
-                 name: item.name,
-                 note: item.note ?? '',
-                 category_id: item.category.id,
-                 price_match: item.price_match
+                name: item.name,
+                note: item.note ?? '',
+                category_id: item.category.id,
+                price_match: item.price_match
             };
-			$error = null; // Reset error when item changes
-            $isSubmitting = false; // Reset submission state
+            $error = null;
+            $isSubmitting = false;
 		}
+		return () => {
+			// Cleanup if needed
+		};
 	});
 
 	async function handleSubmit() {
