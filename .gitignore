@@ -4,3 +4,4 @@
 *.pyc
 codesnap.yml
 *.env
+.vscode

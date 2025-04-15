@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import PriceMatchIcon from '../icons/PriceMatchIcon';
+import { RiPriceTag3Fill, RiPriceTag3Line } from 'react-icons/ri';
 
 const EditIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-4 h-4">
@@ -79,7 +79,13 @@ function ItemRow({ item, onDelete, onUpdate, onEdit }) {
                     className={`btn btn-ghost btn-xs p-1 ${item.price_match ? 'text-error hover:bg-error/10' : 'text-base-content/60 hover:text-error'} disabled:opacity-50`}
                     title={item.price_match ? "Remove Price Match flag" : "Flag for Price Match"}
                 >
-                    {isUpdating ? <span className="loading loading-spinner loading-xs"></span> : <PriceMatchIcon active={item.price_match} />}
+                    {isUpdating ? <span className="loading loading-spinner loading-xs"></span> : (
+                        item.price_match ? (
+                            <RiPriceTag3Fill className="text-red-200 h-4 w-4" />
+                        ) : (
+                            <RiPriceTag3Line className="text-current h-4 w-4" />
+                        )
+                    )}
                     <span className="sr-only">{item.price_match ? "Price Match Active" : "Flag for Price Match"}</span>
                 </button>
 
