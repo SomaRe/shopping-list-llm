@@ -1,6 +1,33 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Optional
 import datetime
+
+class UserBase(BaseModel):
+    username: str
+
+class UserCreate(UserBase):
+    password: str
+
+class UserUpdate(UserBase):
+    username: Optional[str] = None
+    password: Optional[str] = None
+    is_active: Optional[bool] = None
+
+class User(UserBase):
+    id: int
+    is_active: bool
+    model_config = ConfigDict(from_attributes=True)
+
+class UserInDB(User):
+    hashed_password: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
+
 
 class CategoryBase(BaseModel):
     name: str
@@ -39,6 +66,7 @@ class Item(ItemBase):
     added_on: datetime.datetime
     updated_on: datetime.datetime
     category: Category
+    owner_id: int
 
     model_config = ConfigDict(from_attributes=True)
 

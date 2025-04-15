@@ -1,6 +1,30 @@
 from sqlalchemy.orm import Session, joinedload
-from . import models, schemas
 from typing import List, Optional
+
+from . import models, schemas
+from app.core.security import get_password_hash, verify_password
+
+def get_user(db: Session, user_id: int) -> Optional[models.User]:
+    return db.query(models.User).filter(models.User.id == user_id).first()
+
+def get_user_by_username(db: Session, username: str) -> Optional[models.User]:
+    return db.query(models.User).filter(models.User.username == username).first()
+
+def create_user(db: Session, user: schemas.UserCreate) -> models.User:
+    hashed_password = get_password_hash(user.password)
+    db_user = models.User(username=user.username, hashed_password=hashed_password)
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+def authenticate_user(db: Session, username: str, password: str) -> Optional[models.User]:
+    user = get_user_by_username(db, username=username)
+    if not user:
+        return None
+    if not verify_password(password, user.hashed_password):
+        return None
+    return user
 
 def get_category(db: Session, category_id: int) -> Optional[models.Category]:
     return db.query(models.Category).filter(models.Category.id == category_id).first()
@@ -35,26 +59,31 @@ def delete_category(db: Session, category_id: int) -> Optional[models.Category]:
         db.commit()
     return db_category
 
-def get_item(db: Session, item_id: int) -> Optional[models.Item]:
-    return db.query(models.Item).options(joinedload(models.Item.category)).filter(models.Item.id == item_id).first()
+def get_item(db: Session, item_id: int, owner_id: int) -> Optional[models.Item]:
+    return db.query(models.Item).options(
+        joinedload(models.Item.category),
+    ).filter(models.Item.id == item_id, models.Item.owner_id == owner_id).first()
 
-def get_items(db: Session, skip: int = 0, limit: int = 100) -> List[models.Item]:
-    return db.query(models.Item).options(joinedload(models.Item.category)).offset(skip).limit(limit).all()
+def get_items(db: Session, owner_id: int, skip: int = 0, limit: int = 100) -> List[models.Item]:
+    return db.query(models.Item).options(
+        joinedload(models.Item.category),
+    ).filter(models.Item.owner_id == owner_id).offset(skip).limit(limit).all()
 
-def create_item(db: Session, item: schemas.ItemCreate) -> models.Item:
+def create_item(db: Session, item: schemas.ItemCreate, owner_id: int) -> models.Item:
     db_category = get_category(db, item.category_id)
     if not db_category:
         raise ValueError(f"Category with id {item.category_id} not found")
 
-    db_item = models.Item(**item.model_dump())
+    item_data = item.model_dump()
+    db_item = models.Item(**item_data, owner_id=owner_id)
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
     db.refresh(db_item, attribute_names=['category'])
     return db_item
 
-def update_item(db: Session, item_id: int, item_update: schemas.ItemUpdate) -> Optional[models.Item]:
-    db_item = get_item(db, item_id)
+def update_item(db: Session, item_id: int, item_update: schemas.ItemUpdate, owner_id: int) -> Optional[models.Item]:
+    db_item = get_item(db, item_id=item_id, owner_id=owner_id)
     if db_item:
         update_data = item_update.model_dump(exclude_unset=True)
 
@@ -72,8 +101,8 @@ def update_item(db: Session, item_id: int, item_update: schemas.ItemUpdate) -> O
     return db_item
 
 
-def delete_item(db: Session, item_id: int) -> Optional[models.Item]:
-    db_item = get_item(db, item_id)
+def delete_item(db: Session, item_id: int, owner_id: int) -> Optional[models.Item]:
+    db_item = get_item(db, item_id=item_id, owner_id=owner_id)
     if db_item:
         db.delete(db_item)
         db.commit()

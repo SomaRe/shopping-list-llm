@@ -3,6 +3,20 @@ from sqlalchemy.orm import relationship
 from .database import Base
 import datetime
 
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    is_active = Column(Boolean, default=True)
+
+    items = relationship("Item", back_populates="owner")
+
+    def __repr__(self):
+        return f"<User(id={self.id}, username='{self.username}')>"
+
+
 class Category(Base):
     __tablename__ = "categories"
 
@@ -28,5 +42,8 @@ class Item(Base):
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
     category = relationship("Category", back_populates="items")
 
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    owner = relationship("User", back_populates="items")
+
     def __repr__(self):
-        return f"<Item(id={self.id}, name='{self.name}', category_id={self.category_id})>"
+        return f"<Item(id={self.id}, name='{self.name}', category_id={self.category_id}, owner_id={self.owner_id})>"

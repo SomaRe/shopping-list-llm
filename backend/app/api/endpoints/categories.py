@@ -10,7 +10,8 @@ router = APIRouter()
 @router.post("/", response_model=schemas.Category, status_code=status.HTTP_201_CREATED)
 def create_category(
     category: schemas.CategoryCreate,
-    db: Session = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_user)
 ):
     db_category = crud.get_category_by_name(db, name=category.name)
     if db_category:
@@ -21,7 +22,8 @@ def create_category(
 def read_categories(
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_user)
 ):
     categories = crud.get_categories(db, skip=skip, limit=limit)
     return {"categories": categories}
@@ -29,7 +31,8 @@ def read_categories(
 @router.get("/{category_id}", response_model=schemas.Category)
 def read_category(
     category_id: int,
-    db: Session = Depends(deps.get_db)
+    db: Session = Depends(deps.get_db),
+    current_user: models.User = Depends(deps.get_current_user)
 ):
     db_category = crud.get_category(db, category_id=category_id)
     if db_category is None:
