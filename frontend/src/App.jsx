@@ -207,8 +207,8 @@ function AppContent() {
             {/* --- User Info and Logout Header --- */}
             <header className="flex justify-between items-center mb-5 pb-2 border-b border-base-300">
                  {user && (
-                     <span className="text-sm text-base-content/80 font-medium">
-                         {user.username}
+                     <span className="text-lg text-base-content/80 font-bold">
+                         {user.username.charAt(0).toUpperCase() + user.username.slice(1)}
                      </span>
                  )}
                  {/* Provides a fallback span if user is somehow null */}
