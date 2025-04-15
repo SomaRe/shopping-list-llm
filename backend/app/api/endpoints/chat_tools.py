@@ -190,7 +190,7 @@ def _add_item_impl(db: Session, current_user: models.User, name: str, category_n
 
 def _delete_item_impl(db: Session, current_user: models.User, name: str):
     items = crud.get_items(db, owner_id=current_user.id)
-    matching_items = [item for item in items if item.name == name]
+    matching_items = [item for item in items if item.name.lower() == name.lower()]
     
     if not matching_items:
         return f"Error: Item '{name}' not found."
