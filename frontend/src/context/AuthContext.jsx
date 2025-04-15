@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect } from 'react';
 import apiClient from '../services/apiClient'; // We'll create this next
 
-const AuthContext = createContext(null);
+export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(localStorage.getItem('authToken')); // Load token from storage on init

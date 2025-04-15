@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './context/AuthContext'; // Already imported
+import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/ProtectedRoute';
 import * as api from './lib/api';
 import CategoryDisplay from './components/CategoryDisplay';
@@ -59,28 +59,23 @@ function AppContent() {
             setItems(fetchedItems);
         } catch (err) {
             console.error("Failed to load data:", err);
-            // Check for 401 specifically from data load
             if (err.message?.includes('401') || err.response?.status === 401) {
                  setError("Your session may have expired. Please log out and log back in.");
-                 // Optional: automatically trigger logout after a delay or directly
-                 // setTimeout(logout, 3000);
              } else {
                  setError(err.message || "Could not fetch grocery list.");
              }
         } finally {
              if (showLoading) setIsLoading(false);
         }
-    }, []); // No dependencies needed here for loadData itself
+    }, []);
 
     useEffect(() => {
          // Only load data if authenticated
         if (isAuthenticated) {
             loadData();
         }
-        // We rely on AuthProvider/ProtectedRoute to handle redirects if not authenticated
-        // Add isAuthenticated to dependency array if needed, though loadData itself is stable
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isAuthenticated]); // Reload data if auth status changes (e.g., after login)
+    }, [isAuthenticated]);
 
     const itemsByCategory = useMemo(() => {
         const grouped = {};
@@ -92,7 +87,6 @@ function AppContent() {
             if (item.category && grouped[item.category.id]) {
                 grouped[item.category.id].items.push(item);
             } else {
-                // This might happen briefly if categories haven't loaded yet or item data is inconsistent
                 console.warn(`Item ${item.id} (${item.name}) has unknown or missing category:`, item.category);
                 // Optionally create an 'Uncategorized' group
             }
@@ -116,10 +110,10 @@ function AppContent() {
         } catch (err) {
             console.error("Add item failed:", err);
              setError(`Failed to add item: ${err.message}`);
-             if (err.message?.includes('401') || err.response?.status === 401) logout(); // Logout on auth error
+             if (err.message?.includes('401') || err.response?.status === 401) logout();
             throw err;
         }
-    }, [logout]); // Add logout dependency
+    }, [logout]);
 
     const handleAddCategory = useCallback(async (name) => {
         setError(null);
@@ -132,10 +126,10 @@ function AppContent() {
         } catch (err) {
             console.error("Add category failed:", err);
             setError(`Failed to add category: ${err.message}`);
-             if (err.message?.includes('401') || err.response?.status === 401) logout(); // Logout on auth error
+             if (err.message?.includes('401') || err.response?.status === 401) logout();
             throw err;
         }
-    }, [logout]); // Add logout dependency
+    }, [logout]);
 
     const handleDeleteItem = useCallback(async (itemId) => {
          setError(null);
@@ -146,11 +140,11 @@ function AppContent() {
         } catch (err) {
             console.error("Delete item failed:", err);
             setError(`Failed to delete item: ${err.message}`);
-            setItems(originalItems); // Revert
-             if (err.message?.includes('401') || err.response?.status === 401) logout(); // Logout on auth error
+            setItems(originalItems);
+             if (err.message?.includes('401') || err.response?.status === 401) logout();
             throw err;
         }
-    }, [items, logout]); // Add logout dependency
+    }, [items, logout]);
 
     const handleUpdateItem = useCallback(async (itemId, payload) => {
          setError(null);
@@ -169,11 +163,11 @@ function AppContent() {
         } catch (err) {
             console.error("Update item failed:", err);
             setError(`Failed to update item: ${err.message}`);
-            setItems(originalItems); // Revert
-             if (err.message?.includes('401') || err.response?.status === 401) logout(); // Logout on auth error
+            setItems(originalItems);
+             if (err.message?.includes('401') || err.response?.status === 401) logout();
             throw err;
         }
-    }, [editingItem, items, logout]); // Add logout dependency
+    }, [editingItem, items, logout]);
 
     const handleDeleteCategory = useCallback(async (categoryId) => {
         setError(null);
@@ -192,11 +186,11 @@ function AppContent() {
             console.error("Delete category failed:", err);
             setError(`Failed to delete category: ${err.message}`);
             setCategories(originalCategories);
-            setItems(originalItems); // Revert
-             if (err.message?.includes('401') || err.response?.status === 401) logout(); // Logout on auth error
+            setItems(originalItems);
+             if (err.message?.includes('401') || err.response?.status === 401) logout();
             throw err;
         }
-    }, [categories, items, logout]); // Add logout dependency
+    }, [categories, items, logout]);
 
     const openEditModal = useCallback((item) => setEditingItem(item), []);
     const closeEditModal = useCallback(() => setEditingItem(null), []);
@@ -205,13 +199,8 @@ function AppContent() {
 
     const handlePotentialStateChange = useCallback(() => {
         console.log("AI indicated a potential state change, refreshing data...");
-        loadData(false); // Pass false to prevent setting global isLoading
+        loadData(false);
     }, [loadData]);
-
-    // No need for explicit !isAuthenticated check here anymore,
-    // ProtectedRoute handles the redirection.
-    // If this component *were* rendered while not authenticated,
-    // user would be null.
 
     return (
         <div className="container mx-auto p-4 min-h-screen">
@@ -219,7 +208,7 @@ function AppContent() {
             <header className="flex justify-between items-center mb-5 pb-2 border-b border-base-300">
                  {user && (
                      <span className="text-sm text-base-content/80 font-medium">
-                         Logged in as: {user.username}
+                         {user.username}
                      </span>
                  )}
                  {/* Provides a fallback span if user is somehow null */}
