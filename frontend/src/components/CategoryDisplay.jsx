@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 import ItemRow from './ItemRow';
 
 const DeleteIcon = () => (
@@ -11,6 +12,8 @@ function CategoryDisplay({ category, items = [], onDeleteItem, onUpdateItem, onE
     const [isDeletingCategory, setIsDeletingCategory] = useState(false);
     const [categoryDeleteError, setCategoryDeleteError] = useState(null);
     const hasItems = items.length > 0;
+
+    const { logout } = useAuth();
 
     const handleCategoryDelete = async () => {
         if (isDeletingCategory || hasItems) {
@@ -27,7 +30,12 @@ function CategoryDisplay({ category, items = [], onDeleteItem, onUpdateItem, onE
             await onDeleteCategory(category.id);
         } catch (err) {
             console.error("Failed to delete category:", err);
-            setCategoryDeleteError(err.message || 'Failed to delete category.');
+            if (err.response && err.response.status === 401) {
+                setCategoryDeleteError("Your session expired. Please log in again.");
+                logout();
+            } else {
+                setCategoryDeleteError(err.message || 'Failed to delete category.');
+            }
         } finally {
             setIsDeletingCategory(false);
         }

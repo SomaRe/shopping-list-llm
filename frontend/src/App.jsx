@@ -1,11 +1,15 @@
 // src/App.jsx
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
 import * as api from './lib/api';
 import CategoryDisplay from './components/CategoryDisplay';
 import AddItemForm from './components/AddItemForm';
 import EditItemModal from './components/EditItemModal';
 import FloatingChatButton from './components/FloatingChatButton';
 import ChatModal from './components/ChatModal';
+import Login from './components/Login';
 
 const LoadingSpinner = () => (
      <div className="text-center py-10">
@@ -28,7 +32,7 @@ const GlobalError = ({ error, onClear }) => (
 );
 
 
-function App() {
+function AppContent() {
     const [items, setItems] = useState([]);
     const [categories, setCategories] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -203,6 +207,12 @@ function App() {
         loadData(false); // Pass false to prevent setting global isLoading
     }, [loadData]);
 
+    const { isAuthenticated, logout, user } = useAuth();
+
+    if (!isAuthenticated) {
+        return null; // AuthProvider will handle redirect
+    }
+
     return (
         <div className="container mx-auto p-4 min-h-screen">
             <h1 className="text-3xl font-bold mb-6 text-center text-base-content">Grocery List</h1>
@@ -293,6 +303,31 @@ function App() {
             />
 
         </div>
+    );
+}
+
+function AppLayout() {
+    // Layout for authenticated users wraps AppContent
+    return <AppContent />;
+}
+
+function App() {
+    return (
+        <AuthProvider>
+            <Router>
+                <Routes>
+                    <Route path="/login" element={<Login />} />
+
+                    {/* Protected Routes */}
+                    <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+                        <Route path="/" element={<Navigate to="/home" replace />} />
+                        <Route path="/home" element={null} /> {/* Placeholder - AppContent handles all views */}
+                    </Route>
+
+                    <Route path="*" element={<Navigate to="/login" replace />} />
+                </Routes>
+            </Router>
+        </AuthProvider>
     );
 }
 
