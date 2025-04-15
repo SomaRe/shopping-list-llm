@@ -1,6 +1,7 @@
 // src/App.jsx
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import * as api from './lib/api';
@@ -314,7 +315,6 @@ function AppLayout() {
 function App() {
     return (
         <AuthProvider>
-            <Router>
                 <Routes>
                     <Route path="/login" element={<Login />} />
 
@@ -326,7 +326,6 @@ function App() {
 
                     <Route path="*" element={<Navigate to="/login" replace />} />
                 </Routes>
-            </Router>
         </AuthProvider>
     );
 }
