@@ -1,4 +1,3 @@
-// src/components/ChatModal.jsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as api from '../lib/api';
 
