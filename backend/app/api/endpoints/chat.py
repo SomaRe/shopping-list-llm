@@ -6,6 +6,7 @@ from openai import AsyncOpenAI
 
 from app import schemas, models
 from app.api import deps
+from app import crud
 from app.core.config import settings
 from .chat_tools import tools, execute_function_call
 
@@ -28,10 +29,18 @@ async def handle_chat(
             detail="Chat service is not configured."
         )
 
+    # Get current categories to include in system message
+    categories = crud.get_categories(db)
+    category_list = "\n".join([f"- {cat.name}" for cat in categories]) if categories else "No categories yet"
+
     messages = [msg.model_dump() for msg in request.messages]
     messages.insert(0, {
         "role": "system",
-        "content": f"You are a helpful grocery list assistant for {current_user.username}."
+        "content": f"""You are a helpful grocery list assistant for {current_user.username}. 
+Current available categories:
+{category_list}
+
+If a needed category isn't present for an item, create it. Do not ask user for category unless the item is unknown, try to create the category automatically."""
     })
 
     try:

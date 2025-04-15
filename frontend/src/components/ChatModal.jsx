@@ -1,12 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as api from '../lib/api';
-
-// Send Icon
-const SendIcon = () => (
-     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 ml-1">
-         <path d="M3.105 3.105a1.5 1.5 0 0 1 2.122-.001l7.56 7.562a1.5 1.5 0 0 1 0 2.122l-7.56 7.562a1.5 1.5 0 1 1-2.122-2.122L9.536 12 3.105 5.227a1.5 1.5 0 0 1 0-2.122Z" />
-     </svg>
-);
+import { GrClearOption } from "react-icons/gr";
+import { IoSend } from "react-icons/io5";
 
 function ChatModal({ show, onClose, onStateChange }) {
     const [messages, setMessages] = useState([]);
@@ -127,19 +122,30 @@ function ChatModal({ show, onClose, onStateChange }) {
                             id="chat-input"
                             value={currentInput}
                             onChange={(e) => setCurrentInput(e.target.value)}
-                            onKeyDown={handleKeyDown} // Local handler for Enter/Shift+Enter
+                            onKeyDown={handleKeyDown}
                             placeholder="Type your message..."
                             rows="2"
                             disabled={isLoading}
-                            className="textarea textarea-bordered flex-1 text-sm" // DaisyUI textarea
+                            className="textarea textarea-bordered flex-1 text-sm"
                         ></textarea>
-                        <button
-                            onClick={handleSend}
-                            disabled={isLoading || !currentInput.trim()}
-                            className="btn btn-primary self-end" // Align button to bottom of textarea
-                        >
-                            Send <SendIcon/>
-                        </button>
+                        <div className="flex flex-col space-y-2">
+                            <button
+                                onClick={handleSend}
+                                disabled={isLoading || !currentInput.trim()}
+                                className="btn btn-ghost btn-square"
+                                title="Send message"
+                            >
+                                <IoSend className="w-4 h-4"/>
+                            </button>
+                            <button
+                                onClick={() => setMessages([])}
+                                disabled={isLoading || messages.length === 0}
+                                className="btn btn-ghost btn-square"
+                                title="Clear chat"
+                            >
+                                <GrClearOption className="w-5 h-5"/>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

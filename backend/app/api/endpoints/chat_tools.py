@@ -24,7 +24,7 @@ tools = [
         "type": "function",
         "function": {
             "name": "add_item",
-            "description": "Add a new item to the grocery list.",
+            "description": "Add a new item to the grocery list with category name. if category doesn't exist i will be created.",
             "parameters": {
                 "type": "object",
                 "properties": {
