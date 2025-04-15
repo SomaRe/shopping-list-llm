@@ -65,7 +65,7 @@ function ItemRow({ item, onDelete, onUpdate, onEdit }) {
                 <button
                     onClick={togglePriceMatch}
                     disabled={isTogglingPriceMatch}
-                    className="btn btn-ghost btn-xs p-1 text-base-content/70 hover:text-error disabled:opacity-50"
+                    className="btn btn-ghost btn-xs text-base-content/70 hover:text-error disabled:opacity-50"
                     title={item.price_match ? "Remove Price Match flag" : "Flag for Price Match"}
                 >
                     <PriceMatchIcon active={item.price_match} />
