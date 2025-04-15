@@ -5,10 +5,8 @@ async function handleResponse(response) {
     if (!response.ok) {
         let errorData;
         try {
-            // Try to parse JSON first
             errorData = await response.json();
         } catch (e) {
-            // If JSON parsing fails, try to get text
             const errorText = await response.text();
             console.error('API Error (Non-JSON):', response.status, errorText);
             throw new Error(errorText || `HTTP error! status: ${response.status} - ${e}`);
@@ -16,9 +14,8 @@ async function handleResponse(response) {
         console.error('API Error (JSON):', response.status, errorData);
         throw new Error(errorData?.detail || `HTTP error! status: ${response.status}`);
     }
-    // Only try to parse JSON if the response is ok and not No Content (204)
     if (response.status === 204) {
-        return null; // Or handle as needed for DELETE/PUT success
+        return null;
     }
     return response.json();
 }
@@ -44,14 +41,13 @@ export async function deleteCategory(categoryId){
     const response = await fetch(`${BASE_URL}/categories/${categoryId}`, {
 		method: 'DELETE',
 	});
-	// Handle potential 204 No Content for successful delete
     if (!response.ok && response.status !== 204) {
-        return handleResponse(response); // Let handleResponse throw
+        return handleResponse(response);
     }
     if (response.status === 204) {
-        return { success: true, message: 'Category deleted successfully.' }; // Or null
+        return { success: true, message: 'Category deleted successfully.' };
     }
-    return handleResponse(response); // Should ideally not reach here if 204 is handled
+    return handleResponse(response);
 }
 
 // -- Items --
@@ -72,7 +68,7 @@ export async function addItem(payload) {
 
 export async function updateItem(itemId, payload) {
     const response = await fetch(`${BASE_URL}/items/${itemId}`, {
-		method: 'PUT', // Or PATCH depending on your backend
+		method: 'PUT',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify(payload),
 	});
@@ -83,14 +79,13 @@ export async function deleteItem(itemId) {
     const response = await fetch(`${BASE_URL}/items/${itemId}`, {
 		method: 'DELETE',
 	});
-	// Handle potential 204 No Content for successful delete
     if (!response.ok && response.status !== 204) {
-        return handleResponse(response); // Let handleResponse throw
+        return handleResponse(response);
     }
      if (response.status === 204) {
-        return { success: true, message: 'Item deleted successfully.' }; // Or null
+        return { success: true, message: 'Item deleted successfully.' };
     }
-    return handleResponse(response); // Should ideally not reach here if 204 is handled
+    return handleResponse(response);
 }
 
 // -- Chat --
@@ -101,6 +96,5 @@ export async function sendChatMessage(messages) {
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify(payload),
 	});
-    // Use the standard handleResponse
 	return handleResponse(response);
 }

@@ -14,23 +14,13 @@ function ChatModal({ show, onClose, onStateChange }) {
     const [currentInput, setCurrentInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
-    const chatHistoryRef = useRef(null); // Ref for scrolling
+    const chatHistoryRef = useRef(null);
 
-    // Auto-scroll effect
     useEffect(() => {
         if (chatHistoryRef.current) {
             chatHistoryRef.current.scrollTop = chatHistoryRef.current.scrollHeight;
         }
-    }, [messages]); // Run whenever messages change
-
-    // Clear messages when modal is opened (optional)
-    // useEffect(() => {
-    //     if (show) {
-    //         setMessages([]);
-    //         setError(null);
-    //         setCurrentInput('');
-    //     }
-    // }, [show]);
+    }, [messages]);
 
 
     const handleSend = useCallback(async () => {
@@ -45,12 +35,8 @@ function ChatModal({ show, onClose, onStateChange }) {
         setError(null);
 
         try {
-            // Pass the updated messages array to the API
             const response = await api.sendChatMessage(updatedMessages);
-            setMessages(prevMessages => [...prevMessages, response.message]); // Add AI response
-
-            // Check if the AI response suggests a state change (simple check)
-            // A more robust method would involve the API returning explicit action flags.
+            setMessages(prevMessages => [...prevMessages, response.message]);
             if (response.message?.content?.toLowerCase().includes("list updated") ||
                 response.message?.content?.toLowerCase().includes("added") ||
                 response.message?.content?.toLowerCase().includes("removed") ||
@@ -62,16 +48,12 @@ function ChatModal({ show, onClose, onStateChange }) {
             console.error("Chat error:", err);
             const errorMessage = err.message || "Failed to get response from AI.";
             setError(errorMessage);
-            // Add error message to chat
             setMessages(prevMessages => [...prevMessages, { role: 'assistant', content: `Error: ${errorMessage}` }]);
         } finally {
             setIsLoading(false);
-            // Focus input after sending?
-            // document.getElementById('chat-input')?.focus();
         }
     }, [currentInput, isLoading, messages, onStateChange]);
 
-    // Handle Enter key (without Shift) to send, Escape to close
      const handleKeyDown = useCallback((event) => {
         if (event.key === 'Escape') {
             onClose();
@@ -79,13 +61,11 @@ function ChatModal({ show, onClose, onStateChange }) {
              event.preventDefault(); // Prevent newline in textarea
              handleSend();
         }
-    }, [onClose, handleSend]); // Include handleSend dependencies
+    }, [onClose, handleSend]);
 
-    // Add/remove global listener for Escape key when modal is shown/hidden
      useEffect(() => {
         if (show) {
             document.addEventListener('keydown', handleKeyDown);
-            // Optional: Focus input when modal opens
              const chatInput = document.getElementById('chat-input');
              chatInput?.focus();
         } else {

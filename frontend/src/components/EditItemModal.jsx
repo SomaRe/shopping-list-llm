@@ -1,8 +1,6 @@
-// src/components/EditItemModal.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 
 function EditItemModal({ item, categories = [], show, onClose, onUpdate }) {
-    // Local state for the form fields within the modal
     const [name, setName] = useState('');
     const [note, setNote] = useState('');
     const [categoryId, setCategoryId] = useState('');
@@ -11,20 +9,17 @@ function EditItemModal({ item, categories = [], show, onClose, onUpdate }) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState(null);
 
-    // Effect to populate form when 'item' prop changes (modal opens or item changes)
     useEffect(() => {
         if (item) {
             setName(item.name ?? '');
             setNote(item.note ?? '');
-            setCategoryId(item.category?.id?.toString() ?? ''); // Ensure string for select
+            setCategoryId(item.category?.id?.toString() ?? '');
             setPriceMatch(item.price_match ?? false);
-            setError(null); // Clear previous errors
-            setIsSubmitting(false); // Reset submission state
+            setError(null);
+            setIsSubmitting(false);
         }
-        // No cleanup needed here, state resets on next item load
-    }, [item]); // Dependency: re-run when the item to edit changes
+    }, [item]);
 
-    // Effect for handling Escape key press
     const handleKeyDown = useCallback((event) => {
         if (event.key === 'Escape') {
             onClose();
@@ -34,13 +29,11 @@ function EditItemModal({ item, categories = [], show, onClose, onUpdate }) {
     useEffect(() => {
         if (show) {
             document.addEventListener('keydown', handleKeyDown);
-            // Optional: Focus the first input field when modal opens
             const firstInput = document.getElementById('edit-item-name');
             firstInput?.focus();
         } else {
             document.removeEventListener('keydown', handleKeyDown);
         }
-        // Cleanup listener when component unmounts or 'show' becomes false
         return () => {
             document.removeEventListener('keydown', handleKeyDown);
         };
@@ -57,7 +50,7 @@ function EditItemModal({ item, categories = [], show, onClose, onUpdate }) {
         // Construct the payload with only changed fields
         const payload = {};
         if (name.trim() !== item.name) payload.name = name.trim();
-        const currentNote = note.trim() || null; // Treat empty string as null
+        const currentNote = note.trim() || null;
         if (currentNote !== (item.note ?? null)) payload.note = currentNote;
         const currentCategoryId = Number(categoryId);
         if (currentCategoryId !== item.category.id) payload.category_id = currentCategoryId;
@@ -71,8 +64,8 @@ function EditItemModal({ item, categories = [], show, onClose, onUpdate }) {
         }
 
         try {
-            await onUpdate(item.id, payload); // Call parent's update handler
-            onClose(); // Close modal on success
+            await onUpdate(item.id, payload);
+            onClose();
         } catch (err) {
             console.error("Failed to update item:", err);
             setError(err.message || "An error occurred while updating the item.");
@@ -81,12 +74,10 @@ function EditItemModal({ item, categories = [], show, onClose, onUpdate }) {
         }
     };
 
-    // Render nothing if show is false
     if (!show || !item) {
         return null;
     }
 
-    // DaisyUI Modal Structure
     return (
         <dialog id={`edit_modal_${item.id}`} className="modal modal-open" role="dialog" aria-modal="true" aria-labelledby="edit-item-title">
             <div className="modal-box">

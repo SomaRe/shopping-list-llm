@@ -1,4 +1,3 @@
-// src/components/AddItemForm.jsx
 import React, { useState, useEffect } from 'react';
 
 function AddItemForm({ categories = [], onAddItem, onAddCategory }) {
@@ -10,16 +9,11 @@ function AddItemForm({ categories = [], onAddItem, onAddCategory }) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState(null);
 
-    // Effect to set default category when categories load or change
     useEffect(() => {
         if (categories.length > 0 && selectedCategoryId === '') {
-            setSelectedCategoryId(categories[0].id.toString()); // Ensure string for select value
+            setSelectedCategoryId(categories[0].id.toString());
         }
-        // If no categories exist and user hasn't chosen 'new', maybe default to 'new'?
-        // else if (categories.length === 0 && selectedCategoryId === '') {
-        //    setSelectedCategoryId('new');
-        // }
-    }, [categories, selectedCategoryId]); // Re-run if categories change or selection is reset
+    }, [categories, selectedCategoryId]);
 
 
     const handleSubmit = async (e) => {
@@ -39,41 +33,32 @@ function AddItemForm({ categories = [], onAddItem, onAddCategory }) {
         let categoryIdToUse;
 
         try {
-            // 1. Handle category creation if needed
             if (selectedCategoryId === 'new') {
-                // Call parent's add category handler which returns the new category
                 const newCategory = await onAddCategory(newCategoryName.trim());
                 categoryIdToUse = newCategory.id;
-                // Optional: Automatically select the newly created category in the dropdown?
-                // setSelectedCategoryId(newCategory.id.toString()); // Needs categories to update first
             } else {
                 categoryIdToUse = Number(selectedCategoryId);
             }
 
-            // 2. Create the item payload
             const payload = {
                 name: itemName.trim(),
                 category_id: categoryIdToUse,
-                note: itemNote.trim() || null, // Send null if empty
+                note: itemNote.trim() || null,
                 price_match: priceMatch,
             };
 
-            // 3. Call parent's add item handler
             await onAddItem(payload);
 
-            // 4. Reset form on success
             setItemName('');
             setItemNote('');
             setNewCategoryName('');
             setPriceMatch(false);
             setError(null);
-            // Reset selected category back to the first available or empty
             setSelectedCategoryId(categories.length > 0 ? categories[0].id.toString() : '');
 
         } catch (err) {
             console.error("Failed to add item or category:", err);
             setError(err.message || "An error occurred.");
-            // Don't reset form on error so user can fix input
         } finally {
             setIsSubmitting(false);
         }
