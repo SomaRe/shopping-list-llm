@@ -1,6 +1,6 @@
 // src/App.jsx
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider } from './context/AuthProvider';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/ProtectedRoute';
