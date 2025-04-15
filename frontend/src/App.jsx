@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './context/AuthContext';
+import { useAuth } from './context/AuthContext'; // Already imported
 import ProtectedRoute from './components/ProtectedRoute';
 import * as api from './lib/api';
 import CategoryDisplay from './components/CategoryDisplay';
@@ -42,6 +42,10 @@ function AppContent() {
     const [editingItem, setEditingItem] = useState(null);
     const [showChat, setShowChat] = useState(false);
 
+    // --- Get user and logout from AuthContext ---
+    const { isAuthenticated, logout, user } = useAuth();
+    // -------------------------------------------
+
     const loadData = useCallback(async (showLoading = true) => {
         if (showLoading) setIsLoading(true);
         setError(null);
@@ -55,16 +59,28 @@ function AppContent() {
             setItems(fetchedItems);
         } catch (err) {
             console.error("Failed to load data:", err);
-            setError(err.message || "Could not fetch grocery list.");
+            // Check for 401 specifically from data load
+            if (err.message?.includes('401') || err.response?.status === 401) {
+                 setError("Your session may have expired. Please log out and log back in.");
+                 // Optional: automatically trigger logout after a delay or directly
+                 // setTimeout(logout, 3000);
+             } else {
+                 setError(err.message || "Could not fetch grocery list.");
+             }
         } finally {
              if (showLoading) setIsLoading(false);
         }
-    }, []); // useCallback ensures loadData doesn't change unless dependencies do (none here)
+    }, []); // No dependencies needed here for loadData itself
 
     useEffect(() => {
-        loadData();
+         // Only load data if authenticated
+        if (isAuthenticated) {
+            loadData();
+        }
+        // We rely on AuthProvider/ProtectedRoute to handle redirects if not authenticated
+        // Add isAuthenticated to dependency array if needed, though loadData itself is stable
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [isAuthenticated]); // Reload data if auth status changes (e.g., after login)
 
     const itemsByCategory = useMemo(() => {
         const grouped = {};
@@ -76,7 +92,9 @@ function AppContent() {
             if (item.category && grouped[item.category.id]) {
                 grouped[item.category.id].items.push(item);
             } else {
+                // This might happen briefly if categories haven't loaded yet or item data is inconsistent
                 console.warn(`Item ${item.id} (${item.name}) has unknown or missing category:`, item.category);
+                // Optionally create an 'Uncategorized' group
             }
         });
 
@@ -97,125 +115,127 @@ function AppContent() {
             setItems(prevItems => [...prevItems, newItem]);
         } catch (err) {
             console.error("Add item failed:", err);
-            setError(`Failed to add item: ${err.message}`); // Set global error
+             setError(`Failed to add item: ${err.message}`);
+             if (err.message?.includes('401') || err.response?.status === 401) logout(); // Logout on auth error
             throw err;
         }
-    }, []);
+    }, [logout]); // Add logout dependency
 
     const handleAddCategory = useCallback(async (name) => {
         setError(null);
         try {
             const newCategory = await api.addCategory({ name });
-            // Add and re-sort categories
             setCategories(prevCategories =>
                 [...prevCategories, newCategory].sort((a, b) => a.name.localeCompare(b.name))
             );
-            return newCategory; // Return to form
+            return newCategory;
         } catch (err) {
             console.error("Add category failed:", err);
             setError(`Failed to add category: ${err.message}`);
-            throw err; // Re-throw for form
+             if (err.message?.includes('401') || err.response?.status === 401) logout(); // Logout on auth error
+            throw err;
         }
-    }, []);
+    }, [logout]); // Add logout dependency
 
     const handleDeleteItem = useCallback(async (itemId) => {
          setError(null);
-         // Optimistic UI update (optional but good for UX)
          const originalItems = items;
          setItems(prevItems => prevItems.filter(item => item.id !== itemId));
         try {
             await api.deleteItem(itemId);
-            // If optimistic update worked, no need to change state again
         } catch (err) {
             console.error("Delete item failed:", err);
             setError(`Failed to delete item: ${err.message}`);
-            // Revert optimistic update if API call failed
-            setItems(originalItems);
-            throw err; // Re-throw for ItemRow component's local error handling
+            setItems(originalItems); // Revert
+             if (err.message?.includes('401') || err.response?.status === 401) logout(); // Logout on auth error
+            throw err;
         }
-    }, [items]); // Dependency on 'items' for optimistic revert
+    }, [items, logout]); // Add logout dependency
 
     const handleUpdateItem = useCallback(async (itemId, payload) => {
          setError(null);
-         const originalItems = items; // Store for potential revert
+         const originalItems = items;
         try {
-             // Apply optimistic update first for better UX
              setItems(prevItems => prevItems.map(item =>
                 item.id === itemId ? { ...item, ...payload } : item
              ));
-
-             // Call the API - Use the *full* updated item for PUT if backend expects it
-             // Or just send the 'payload' (changed fields) if backend uses PATCH/partial update
-             // For simplicity, let's assume PATCH/partial update here based on EditItemModal logic
-            const updatedItemFromServer = await api.updateItem(itemId, payload);
-
-             // Update state with potentially more complete data from server response
-            setItems(prevItems => prevItems.map(item =>
+             const updatedItemFromServer = await api.updateItem(itemId, payload);
+             setItems(prevItems => prevItems.map(item =>
                 item.id === itemId ? updatedItemFromServer : item
             ));
-            // Close the modal if it was an edit from the modal
             if (editingItem?.id === itemId) {
                 setEditingItem(null);
             }
         } catch (err) {
             console.error("Update item failed:", err);
             setError(`Failed to update item: ${err.message}`);
-            // Revert optimistic update on failure
-            setItems(originalItems);
-            throw err; // Re-throw for modal/row component
+            setItems(originalItems); // Revert
+             if (err.message?.includes('401') || err.response?.status === 401) logout(); // Logout on auth error
+            throw err;
         }
-    }, [editingItem, items]); // Depend on editingItem to close modal, items for revert
+    }, [editingItem, items, logout]); // Add logout dependency
 
     const handleDeleteCategory = useCallback(async (categoryId) => {
         setError(null);
          const originalCategories = categories;
          const originalItems = items;
-         // Check if category has items (should be handled in CategoryDisplay, but double-check)
          const categoryHasItems = items.some(item => item.category?.id === categoryId);
          if (categoryHasItems) {
              const errorMsg = "Cannot delete category with items.";
              setError(errorMsg);
-             throw new Error(errorMsg); // Prevent deletion
+             throw new Error(errorMsg);
          }
-
-         // Optimistic UI update
          setCategories(prev => prev.filter(cat => cat.id !== categoryId));
-         // Note: Items in this category *should* be empty based on check above
-
         try {
             await api.deleteCategory(categoryId);
-            // Success, optimistic update is correct
         } catch (err) {
             console.error("Delete category failed:", err);
             setError(`Failed to delete category: ${err.message}`);
-            // Revert optimistic updates
             setCategories(originalCategories);
-            setItems(originalItems);
-            throw err; // Re-throw for CategoryDisplay component
+            setItems(originalItems); // Revert
+             if (err.message?.includes('401') || err.response?.status === 401) logout(); // Logout on auth error
+            throw err;
         }
-    }, [categories, items]); // Dependencies for checks and revert
+    }, [categories, items, logout]); // Add logout dependency
 
     const openEditModal = useCallback((item) => setEditingItem(item), []);
     const closeEditModal = useCallback(() => setEditingItem(null), []);
     const openChatModal = useCallback(() => setShowChat(true), []);
     const closeChatModal = useCallback(() => setShowChat(false), []);
 
-    // --- Chat State Change Handler ---
     const handlePotentialStateChange = useCallback(() => {
         console.log("AI indicated a potential state change, refreshing data...");
-        // Re-call loadData, but maybe don't show the main loading spinner
-        // to avoid disrupting the user flow too much after chat.
         loadData(false); // Pass false to prevent setting global isLoading
     }, [loadData]);
 
-    const { isAuthenticated, logout, user } = useAuth();
-
-    if (!isAuthenticated) {
-        return null; // AuthProvider will handle redirect
-    }
+    // No need for explicit !isAuthenticated check here anymore,
+    // ProtectedRoute handles the redirection.
+    // If this component *were* rendered while not authenticated,
+    // user would be null.
 
     return (
         <div className="container mx-auto p-4 min-h-screen">
+            {/* --- User Info and Logout Header --- */}
+            <header className="flex justify-between items-center mb-5 pb-2 border-b border-base-300">
+                 {user && (
+                     <span className="text-sm text-base-content/80 font-medium">
+                         Logged in as: {user.username}
+                     </span>
+                 )}
+                 {/* Provides a fallback span if user is somehow null */}
+                 {!user && <span className="text-sm text-base-content/50">Loading user...</span>}
+
+                 <button
+                    onClick={logout}
+                    className="btn btn-sm btn-outline btn-error" // Clearer logout style
+                    title="Logout"
+                >
+                    Logout
+                </button>
+            </header>
+            {/* ------------------------------------- */}
+
+
             <h1 className="text-3xl font-bold mb-6 text-center text-base-content">Grocery List</h1>
 
             {/* Global Error Display */}
@@ -250,15 +270,17 @@ function AppContent() {
                             category={group.category}
                             items={group.items}
                             onDeleteItem={handleDeleteItem}
-                            onUpdateItem={handleUpdateItem} // Pass the combined handler
+                            onUpdateItem={handleUpdateItem}
                             onEditItem={openEditModal}
                             onDeleteCategory={handleDeleteCategory}
+                            logout={logout} // Pass logout down if needed for specific 401 handling inside
                         />
                     ))}
                 </div>
             )}
 
-            {!isLoading && items.length === 0 && categories.length > 0 && (
+            {/* ... (rest of the conditional rendering for empty states etc.) ... */}
+             {!isLoading && items.length === 0 && categories.length > 0 && (
                 <div className="text-center py-10 card bg-base-100 shadow">
                     <div className="card-body items-center">
                         <p className="text-base-content/70">Your grocery list is empty.</p>
@@ -283,14 +305,13 @@ function AppContent() {
                  </div>
             )}
 
-
             {/* Edit Item Modal */}
             <EditItemModal
                 item={editingItem}
                 categories={categories}
-                show={!!editingItem} // Show modal if editingItem is not null
+                show={!!editingItem}
                 onClose={closeEditModal}
-                onUpdate={handleUpdateItem} // Pass the main update handler
+                onUpdate={handleUpdateItem}
             />
 
             {/* Floating Chat Button */}
@@ -300,31 +321,35 @@ function AppContent() {
             <ChatModal
                 show={showChat}
                 onClose={closeChatModal}
-                onStateChange={handlePotentialStateChange} // Pass refresh handler
+                onStateChange={handlePotentialStateChange}
             />
 
         </div>
     );
 }
 
+// AppLayout remains the same
 function AppLayout() {
-    // Layout for authenticated users wraps AppContent
     return <AppContent />;
 }
 
+// App remains the same
 function App() {
     return (
         <AuthProvider>
                 <Routes>
                     <Route path="/login" element={<Login />} />
-
                     {/* Protected Routes */}
                     <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-                        <Route path="/" element={<Navigate to="/home" replace />} />
-                        <Route path="/home" element={null} /> {/* Placeholder - AppContent handles all views */}
+                         {/* AppLayout now renders AppContent */}
+                        <Route path="/" element={null} />
+                        {/* Remove the explicit /home route if AppContent handles everything at root */}
+                        {/* <Route path="/home" element={null} />  <- Removed */}
                     </Route>
+                    {/* Redirect any unmatched authenticated path to root */}
+                     <Route path="*" element={<Navigate to="/" replace />} />
+                    {/* Unauthenticated users hitting '*' will be caught by ProtectedRoute and redirected to /login */}
 
-                    <Route path="*" element={<Navigate to="/login" replace />} />
                 </Routes>
         </AuthProvider>
     );
