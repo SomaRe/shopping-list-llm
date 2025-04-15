@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import PriceMatchIcon from '../icons/PriceMatchIcon';
-import * as api from '../lib/api';
 
 const EditIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-4 h-4">
@@ -14,37 +13,38 @@ const DeleteIcon = () => (
     </svg>
 );
 
-
 function ItemRow({ item, onDelete, onUpdate, onEdit }) {
     const [isDeleting, setIsDeleting] = useState(false);
-    const [isTogglingPriceMatch, setIsTogglingPriceMatch] = useState(false);
-    const [localError, setLocalError] = useState(null);
+    const [isUpdating, setIsUpdating] = useState(false);
 
-    const togglePriceMatch = async () => {
-        if (isTogglingPriceMatch) return;
-        setIsTogglingPriceMatch(true);
-        setLocalError(null);
+    const handleUpdate = async (updatePayload) => {
+        if (isUpdating || isDeleting) return;
+        setIsUpdating(true);
         try {
-            await api.updateItem(item.id, { price_match: !item.price_match });
-            onUpdate(item.id, { ...item, price_match: !item.price_match });
+            await onUpdate(item.id, updatePayload);
         } catch (err) {
-            console.error("Failed to toggle price match:", err);
-            setLocalError(err.message || "Failed to update");
+            console.error("Failed to update item:", err);
         } finally {
-            setIsTogglingPriceMatch(false);
+            setIsUpdating(false);
         }
     };
 
+    const togglePriceMatch = () => {
+        handleUpdate({ price_match: !item.price_match });
+    };
+
+    const handleToggleTicked = () => {
+        handleUpdate({ is_ticked: !item.is_ticked });
+    };
+
     const handleDelete = async () => {
-        if (isDeleting) return;
+        if (isDeleting || isUpdating) return;
         if (!window.confirm(`Are you sure you want to delete "${item.name}"?`)) return;
         setIsDeleting(true);
-        setLocalError(null);
         try {
             await onDelete(item.id);
         } catch (err) {
             console.error("Failed to delete item:", err);
-            setLocalError(err.message || "Failed to delete");
         } finally {
             setIsDeleting(false);
         }
@@ -52,29 +52,41 @@ function ItemRow({ item, onDelete, onUpdate, onEdit }) {
 
     return (
         <div className="flex items-center justify-between py-2 px-3 hover:bg-base-200 group">
-            <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-base-content truncate">{item.name}</p>
-                {item.note && (
-                    <p className="text-xs text-base-content/70 truncate">{item.note}</p>
-                )}
-                {localError && (
-                    <p className="text-xs text-error mt-1">{localError}</p>
-                )}
+            <div className="flex-1 flex items-center min-w-0 mr-2">
+                <input
+                    type="checkbox"
+                    checked={item.is_ticked}
+                    onChange={handleToggleTicked}
+                    disabled={isUpdating || isDeleting}
+                    className={`checkbox checkbox-sm checkbox-primary mr-3 shrink-0 ${isUpdating ? 'opacity-50' : ''}`}
+                    aria-label={`Mark ${item.name} as ${item.is_ticked ? 'not acquired' : 'acquired'}`}
+                />
+                <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium text-base-content truncate ${item.is_ticked ? 'line-through text-base-content/50' : ''}`}>
+                        {item.name}
+                    </p>
+                    {item.note && (
+                        <p className={`text-xs text-base-content/70 truncate ${item.is_ticked ? 'line-through' : ''}`}>
+                            {item.note}
+                        </p>
+                    )}
+                </div>
             </div>
-            <div className="flex items-center space-x-1 md:space-x-2 ml-2">
+            <div className="flex items-center space-x-1 md:space-x-2 flex-shrink-0">
                 <button
                     onClick={togglePriceMatch}
-                    disabled={isTogglingPriceMatch}
-                    className="btn btn-ghost btn-xs text-base-content/70 hover:text-error disabled:opacity-50"
+                    disabled={isUpdating || isDeleting}
+                    className={`btn btn-ghost btn-xs p-1 ${item.price_match ? 'text-error hover:bg-error/10' : 'text-base-content/60 hover:text-error'} disabled:opacity-50`}
                     title={item.price_match ? "Remove Price Match flag" : "Flag for Price Match"}
                 >
-                    <PriceMatchIcon active={item.price_match} />
+                    {isUpdating ? <span className="loading loading-spinner loading-xs"></span> : <PriceMatchIcon active={item.price_match} />}
                     <span className="sr-only">{item.price_match ? "Price Match Active" : "Flag for Price Match"}</span>
                 </button>
 
                 <button
                     onClick={() => onEdit(item)}
-                    className="btn btn-ghost btn-xs p-1 text-base-content/70 hover:text-info"
+                    disabled={isUpdating || isDeleting}
+                    className="btn btn-ghost btn-xs p-1 text-base-content/70 hover:text-info disabled:opacity-50"
                     title="Edit Item"
                 >
                     <EditIcon />
@@ -83,7 +95,7 @@ function ItemRow({ item, onDelete, onUpdate, onEdit }) {
 
                 <button
                     onClick={handleDelete}
-                    disabled={isDeleting}
+                    disabled={isUpdating || isDeleting}
                     className="btn btn-ghost btn-xs p-1 text-base-content/70 hover:text-error disabled:opacity-50"
                     title="Delete Item"
                 >

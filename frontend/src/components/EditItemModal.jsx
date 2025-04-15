@@ -5,6 +5,7 @@ function EditItemModal({ item, categories = [], show, onClose, onUpdate }) {
     const [note, setNote] = useState('');
     const [categoryId, setCategoryId] = useState('');
     const [priceMatch, setPriceMatch] = useState(false);
+    const [isTicked, setIsTicked] = useState(false);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState(null);
@@ -15,6 +16,7 @@ function EditItemModal({ item, categories = [], show, onClose, onUpdate }) {
             setNote(item.note ?? '');
             setCategoryId(item.category?.id?.toString() ?? '');
             setPriceMatch(item.price_match ?? false);
+            setIsTicked(item.is_ticked ?? false);
             setError(null);
             setIsSubmitting(false);
         }
@@ -47,7 +49,6 @@ function EditItemModal({ item, categories = [], show, onClose, onUpdate }) {
         setIsSubmitting(true);
         setError(null);
 
-        // Construct the payload with only changed fields
         const payload = {};
         if (name.trim() !== item.name) payload.name = name.trim();
         const currentNote = note.trim() || null;
@@ -55,11 +56,11 @@ function EditItemModal({ item, categories = [], show, onClose, onUpdate }) {
         const currentCategoryId = Number(categoryId);
         if (currentCategoryId !== item.category.id) payload.category_id = currentCategoryId;
         if (priceMatch !== item.price_match) payload.price_match = priceMatch;
+        if (isTicked !== item.is_ticked) payload.is_ticked = isTicked;
 
-
-        // If nothing changed, just close the modal
         if (Object.keys(payload).length === 0) {
             onClose();
+            setIsSubmitting(false);
             return;
         }
 
@@ -123,7 +124,6 @@ function EditItemModal({ item, categories = [], show, onClose, onUpdate }) {
                                     {category.name}
                                 </option>
                             ))}
-                            {/* No 'new category' option in edit mode for simplicity */}
                         </select>
                     </div>
 
@@ -154,25 +154,37 @@ function EditItemModal({ item, categories = [], show, onClose, onUpdate }) {
                         </label>
                     </div>
 
+                     <div className="form-control">
+                        <label className="label cursor-pointer justify-start gap-4">
+                            <input
+                                id="edit-is-ticked"
+                                type="checkbox"
+                                checked={isTicked}
+                                onChange={(e) => setIsTicked(e.target.checked)}
+                                className="checkbox checkbox-secondary"
+                            />
+                             <span className="label-text">Item Acquired / Ticked Off</span>
+                        </label>
+                    </div>
+
                     <div className="modal-action mt-6">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="btn btn-ghost" // Close button
+                            className="btn btn-ghost"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={isSubmitting || !name.trim() || !categoryId}
-                            className="btn btn-primary" // Submit button
+                            className="btn btn-primary"
                         >
                             {isSubmitting ? <> <span className="loading loading-spinner loading-xs"></span> Saving... </> : 'Save Changes'}
                         </button>
                     </div>
                 </form>
             </div>
-             {/* Click outside to close */}
              <form method="dialog" className="modal-backdrop">
                 <button onClick={onClose}>close</button>
              </form>

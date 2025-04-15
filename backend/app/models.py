@@ -36,6 +36,7 @@ class Item(Base):
     name = Column(String, index=True, nullable=False)
     note = Column(String, nullable=True)
     price_match = Column(Boolean, default=False, nullable=False)
+    is_ticked = Column(Boolean, default=False, nullable=False)
     added_on = Column(DateTime(timezone=True), server_default=func.now())
     updated_on = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
 
@@ -46,4 +47,4 @@ class Item(Base):
     owner = relationship("User", back_populates="items")
 
     def __repr__(self):
-        return f"<Item(id={self.id}, name='{self.name}', category_id={self.category_id}, owner_id={self.owner_id})>"
+        return f"<Item(id={self.id}, name='{self.name}', ticked={self.is_ticked}, category_id={self.category_id}, owner_id={self.owner_id})>"

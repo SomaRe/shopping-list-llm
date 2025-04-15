@@ -51,6 +51,7 @@ class ItemBase(BaseModel):
     name: str
     note: Optional[str] = None
     price_match: bool = False
+    is_ticked: bool = False
 
 class ItemCreate(ItemBase):
     category_id: int
@@ -59,6 +60,7 @@ class ItemUpdate(ItemBase):
     name: Optional[str] = None
     note: Optional[str] = None
     price_match: Optional[bool] = None
+    is_ticked: Optional[bool] = None
     category_id: Optional[int] = None
 
 class Item(ItemBase):

@@ -51,7 +51,12 @@ def update_item(
     if db_item is None:
         raise HTTPException(status_code=404, detail="Item not found")
     try:
-        updated_item = crud.update_item(db=db, item_id=item_id, item_update=item)
+        updated_item = crud.update_item(
+            db=db, 
+            item_id=item_id, 
+            item_update=item,
+            owner_id=current_user.id
+        )
         return updated_item
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
