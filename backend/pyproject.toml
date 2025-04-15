@@ -8,3 +8,6 @@ dependencies = [
     "fastapi[standard]>=0.115.12",
     "sqlalchemy>=2.0.40",
 ]
+
+[project.scripts]                                           
+app = "app.main:app"                                        
