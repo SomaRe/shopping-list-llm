@@ -3,4 +3,4 @@
 *__pycache__
 *.pyc
 codesnap.yml
-.env
+*.env
