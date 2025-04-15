@@ -1,100 +1,67 @@
 // src/lib/api.js
-const BASE_URL = 'http://localhost:8000/api/v1'; // Your backend URL
+import apiClient from '../services/apiClient'; // Import the configured Axios instance
 
-async function handleResponse(response) {
-    if (!response.ok) {
-        let errorData;
-        try {
-            errorData = await response.json();
-        } catch (e) {
-            const errorText = await response.text();
-            console.error('API Error (Non-JSON):', response.status, errorText);
-            throw new Error(errorText || `HTTP error! status: ${response.status} - ${e}`);
+// Axios handles JSON parsing and throws errors for non-2xx responses by default.
+// Adjust the error handling slightly.
+async function handleAxiosResponse(axiosPromise) {
+    try {
+        const response = await axiosPromise;
+        // For DELETE requests that return 204 No Content, Axios might return undefined data
+        if (response.status === 204) {
+             // You might want a consistent success object for deletes
+            return { success: true, message: 'Operation successful (No Content)' };
         }
-        console.error('API Error (JSON):', response.status, errorData);
-        throw new Error(errorData?.detail || `HTTP error! status: ${response.status}`);
+        return response.data; // Data is directly available in response.data
+    } catch (error) {
+        console.error('API Error (Axios):', error.response?.status, error.response?.data || error.message);
+        // Extract detail message if available, otherwise use generic error message
+        const detail = error.response?.data?.detail || error.message || `HTTP error! status: ${error.response?.status}`;
+        throw new Error(detail);
     }
-    if (response.status === 204) {
-        return null;
-    }
-    return response.json();
 }
 
 
 // -- Categories --
-export async function fetchCategories(){
-	const response = await fetch(`${BASE_URL}/categories/`);
-	const data = await handleResponse(response);
-    return data.categories;
+export async function fetchCategories() {
+    const response = await handleAxiosResponse(apiClient.get('/categories/'));
+    // Assuming the backend still wraps categories in a 'categories' key
+    return response.categories || response; // Adjust if backend structure changed
 }
 
 export async function addCategory(payload) {
-	const response = await fetch(`${BASE_URL}/categories/`, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify(payload),
-	});
-	return handleResponse(response);
+    return handleAxiosResponse(apiClient.post('/categories/', payload));
 }
 
-export async function deleteCategory(categoryId){
-    const response = await fetch(`${BASE_URL}/categories/${categoryId}`, {
-		method: 'DELETE',
-	});
-    if (!response.ok && response.status !== 204) {
-        return handleResponse(response);
-    }
-    if (response.status === 204) {
-        return { success: true, message: 'Category deleted successfully.' };
-    }
-    return handleResponse(response);
+export async function deleteCategory(categoryId) {
+    return handleAxiosResponse(apiClient.delete(`/categories/${categoryId}`));
 }
 
 // -- Items --
 export async function fetchItems() {
-	const response = await fetch(`${BASE_URL}/items/`);
-    const data = await handleResponse(response);
-	return data.items;
+    const response = await handleAxiosResponse(apiClient.get('/items/'));
+     // Assuming the backend still wraps items in an 'items' key
+    return response.items || response; // Adjust if backend structure changed
 }
 
 export async function addItem(payload) {
-	const response = await fetch(`${BASE_URL}/items/`, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify(payload),
-	});
-	return handleResponse(response);
+    return handleAxiosResponse(apiClient.post('/items/', payload));
 }
 
 export async function updateItem(itemId, payload) {
-    const response = await fetch(`${BASE_URL}/items/${itemId}`, {
-		method: 'PUT',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify(payload),
-	});
-	return handleResponse(response);
+    // Use PATCH if your backend supports partial updates, otherwise stick to PUT
+    // FastAPI PUT often requires the full object, while PATCH handles partials.
+    // Let's assume PUT requires the full object based on the previous setup,
+    // but your EditItemModal only sends partials. Adjust backend or payload if needed.
+    // For now, using PUT as before.
+    return handleAxiosResponse(apiClient.put(`/items/${itemId}`, payload));
 }
 
 export async function deleteItem(itemId) {
-    const response = await fetch(`${BASE_URL}/items/${itemId}`, {
-		method: 'DELETE',
-	});
-    if (!response.ok && response.status !== 204) {
-        return handleResponse(response);
-    }
-     if (response.status === 204) {
-        return { success: true, message: 'Item deleted successfully.' };
-    }
-    return handleResponse(response);
+    return handleAxiosResponse(apiClient.delete(`/items/${itemId}`));
 }
 
 // -- Chat --
 export async function sendChatMessage(messages) {
     const payload = { messages };
-	const response = await fetch(`${BASE_URL}/chat/`, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify(payload),
-	});
-	return handleResponse(response);
+    return handleAxiosResponse(apiClient.post('/chat/', payload));
 }
