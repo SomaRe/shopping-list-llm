@@ -36,7 +36,7 @@ function App() {
     const [categories, setCategories] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [showAddItem, setShowAddItem] = useState(true);
+    const [showAddItem, setShowAddItem] = useState(false);
     const [editingItem, setEditingItem] = useState(null); // Holds the item object being edited, or null
     const [showChat, setShowChat] = useState(false);
 
