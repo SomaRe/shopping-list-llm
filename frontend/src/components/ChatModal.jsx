@@ -35,6 +35,7 @@ function ChatModal({ show, onClose, onStateChange }) {
                 response.message?.content?.toLowerCase().includes("added") ||
                 response.message?.content?.toLowerCase().includes("removed") ||
                 response.message?.content?.toLowerCase().includes("deleted") ) {
+                console.info("List updated successfully in chat response.");
                 if(onStateChange) onStateChange();
             }
 

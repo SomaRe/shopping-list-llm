@@ -50,7 +50,7 @@ function Login() {
                                     disabled={isLoading}
                                 />
                             </div>
-                            <div className="form-control">
+                            <div className="form-control mt-4">
                                 <label className="label" htmlFor="password">
                                     <span className="label-text">Password</span>
                                 </label>

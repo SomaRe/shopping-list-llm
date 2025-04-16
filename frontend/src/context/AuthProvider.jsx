@@ -4,15 +4,17 @@ import apiClient from '../services/apiClient';
 
 export const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(localStorage.getItem('authToken'));
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState( () => {
+        const savedUser = localStorage.getItem('user');
+        return savedUser ? JSON.parse(savedUser) : null
+    }  // Initialize user state from localStorage
+    );
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
     useEffect(() => {
         if (token) {
             apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            // Optionally fetch user data here if needed
-            // e.g., getUserProfile().then(setUser);
         } else {
             delete apiClient.defaults.headers.common['Authorization'];
         }
@@ -35,12 +37,12 @@ export const AuthProvider = ({ children }) => {
 
             const newToken = response.data.access_token;
             setToken(newToken);
-            localStorage.setItem('authToken', newToken); // Persist token
+            localStorage.setItem('authToken', newToken);
             apiClient.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-            // Optionally set user info here if needed
-            setUser({ username }); // Simple user object
+            setUser({ username });
+            localStorage.setItem('user', JSON.stringify({username}));
             setIsLoading(false);
-            return true; // Indicate success
+            return true;
         } catch (err) {
             console.error("Login failed:", err.response?.data || err.message);
             setError(err.response?.data?.detail || 'Login failed. Please check credentials.');
