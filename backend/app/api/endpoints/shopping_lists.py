@@ -72,6 +72,9 @@ def update_list(
     """
     Update a list's details (name, type). Only the list owner can update.
     """
+    """
+    Update a list's details (name, type). Only the list owner can update.
+    """
     db_list = crud.get_list(db, list_id=list_id)
     if db_list is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="List not found")

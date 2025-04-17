@@ -26,20 +26,8 @@ export async function fetchLists() {
     return handleAxiosResponse(apiClient.get('/lists/'));
 }
 
-export async function createList(payload) {
-    return handleAxiosResponse(apiClient.post('/lists/', payload));
-}
-
-export async function getListDetails(listId) {
-    return handleAxiosResponse(apiClient.get(`/lists/${listId}`));
-}
-
 export async function updateList(listId, payload) {
     return handleAxiosResponse(apiClient.put(`/lists/${listId}`, payload));
-}
-
-export async function deleteList(listId) {
-    return handleAxiosResponse(apiClient.delete(`/lists/${listId}`));
 }
 
 export async function addListMember(listId, username) {
@@ -48,6 +36,18 @@ export async function addListMember(listId, username) {
 
 export async function removeListMember(listId, userIdToRemove) {
     return handleAxiosResponse(apiClient.delete(`/lists/${listId}/members/${userIdToRemove}`));
+}
+
+export async function deleteList(listId) {
+    return handleAxiosResponse(apiClient.delete(`/lists/${listId}`));
+}
+
+export async function createList(payload) {
+    return handleAxiosResponse(apiClient.post('/lists/', payload));
+}
+
+export async function getListDetails(listId) {
+    return handleAxiosResponse(apiClient.get(`/lists/${listId}`));
 }
 
 // --- Categories (Now require listId) ---

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import * as api from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
 import CreateListModal from '../components/CreateListModal';
@@ -22,7 +22,7 @@ function ShoppingListsPage() {
     const [selectedList, setSelectedList] = useState(null);
 
     const { user, logout } = useAuth();
-    const navigate = useNavigate();
+    // const navigate = useNavigate();
 
     const fetchUserLists = useCallback(async () => {
         setIsLoading(true);
@@ -60,21 +60,21 @@ function ShoppingListsPage() {
         setShowManageModal(true);
     };
 
-    const handleDeleteList = async (listId, listName) => {
-         if (!window.confirm(`Are you sure you want to permanently delete the list "${listName}"?`)) {
-             return;
-         }
-         setIsLoading(true);
-         try {
-             await api.deleteList(listId);
-             fetchUserLists();
-         } catch (err) {
-             console.error("Failed to delete list:", err);
-             setError(`Failed to delete list: ${err.message}`);
-             if (err.message?.includes('401')) logout();
-             setIsLoading(false);
-         }
-     };
+    // const handleDeleteList = async (listId, listName) => {
+    //      if (!window.confirm(`Are you sure you want to permanently delete the list "${listName}"?`)) {
+    //          return;
+    //      }
+    //      setIsLoading(true);
+    //      try {
+    //          await api.deleteList(listId);
+    //          fetchUserLists();
+    //      } catch (err) {
+    //          console.error("Failed to delete list:", err);
+    //          setError(`Failed to delete list: ${err.message}`);
+    //          if (err.message?.includes('401')) logout();
+    //          setIsLoading(false);
+    //      }
+    //  };
 
     return (
         <div className="container mx-auto p-4 min-h-screen">
@@ -150,6 +150,16 @@ function ShoppingListsPage() {
                                     <Link to={`/lists/${list.id}`} className="btn btn-sm btn-outline btn-primary" title="View List">
                                         <LuEye className="w-4 h-4"/> View
                                     </Link>
+
+                                    {list.owner.id === user.id && (
+                                        <button
+                                            onClick={() => openManageModal(list)}
+                                            className="btn btn-sm btn-outline btn-secondary"
+                                            title="Manage List & Members"
+                                        >
+                                            <LuSettings className="w-4 h-4"/> Manage
+                                        </button>
+                                    )}
 
                                     {list.owner.id === user.id ? (
                                         <>

@@ -43,6 +43,7 @@ class ShoppingListCreate(ShoppingListBase):
 class ShoppingListUpdate(BaseModel):
     name: Optional[str] = None
     list_type: Optional[str] = None # Allow changing type
+    model_config = ConfigDict(from_attributes=True)
 
 class ShoppingListMemberInfo(BaseModel):
     user: UserInfo
