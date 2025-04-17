@@ -303,11 +303,6 @@ function AppContent() {
     );
 }
 
-// AppLayout remains the same
-function AppLayout() {
-    return <AppContent />;
-}
-
 // App remains the same
 function App() {
     return (
