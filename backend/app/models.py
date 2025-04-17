@@ -21,7 +21,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
 
     # Lists owned by the user
-    owned_lists = relationship("List", back_populates="owner")
+    owned_lists = relationship("ShoppingList", back_populates="owner")
     # Memberships in lists
     list_memberships = relationship("ListMember", back_populates="user")
     # Items created by the user
@@ -37,7 +37,7 @@ class User(Base):
         return f"<User(id={self.id}, username='{self.username}')>"
 
 
-class List(Base):
+class ShoppingList(Base):
     __tablename__ = "lists"
 
     id = Column(Integer, primary_key=True, index=True)

@@ -31,33 +31,33 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     username: Optional[str] = None
 
-# --- List Schemas ---
-class ListBase(BaseModel):
+# --- ShoppingList Schemas (Renamed from List) ---
+class ShoppingListBase(BaseModel):
     name: str
     list_type: str = 'private' # Default to private
 
-class ListCreate(ListBase):
+class ShoppingListCreate(ShoppingListBase):
     # Owner is determined by current_user in endpoint
     share_with_usernames: Optional[List[str]] = None # Optional: list of usernames to share with initially
 
-class ListUpdate(BaseModel):
+class ShoppingListUpdate(BaseModel):
     name: Optional[str] = None
     list_type: Optional[str] = None # Allow changing type
 
-class ListMemberInfo(BaseModel):
+class ShoppingListMemberInfo(BaseModel):
     user: UserInfo
     added_at: datetime.datetime
     model_config = ConfigDict(from_attributes=True)
 
-class List(ListBase):
+class ShoppingList(ShoppingListBase):
     id: int
     owner: UserInfo # Nested owner info
     created_at: datetime.datetime
     updated_at: datetime.datetime
-    members: List[ListMemberInfo] = [] # Include members
+    members: List[ShoppingListMemberInfo] = [] # Include members
     model_config = ConfigDict(from_attributes=True)
 
-class SimpleListInfo(BaseModel): # For simpler nesting in categories/items
+class SimpleShoppingListInfo(BaseModel): # For simpler nesting in categories/items
     id: int
     name: str
     list_type: str

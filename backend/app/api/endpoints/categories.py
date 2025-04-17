@@ -8,11 +8,11 @@ from app.api import deps
 router = APIRouter()
 
 # --- Helper Dependency for List Access ---
-def get_list_and_check_access(
+def get_shopping_list_for_check_access(
     list_id: int,
     db: Session = Depends(deps.get_db),
     current_user: models.User = Depends(deps.get_current_user)
-) -> models.List:
+) -> int:
     """Dependency to get list and verify user access."""
     if not crud.check_user_list_access(db=db, list_id=list_id, user_id=current_user.id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to access this list")
@@ -28,7 +28,7 @@ def get_list_and_check_access(
 @router.post("/", response_model=schemas.Category, status_code=status.HTTP_201_CREATED)
 def create_category_for_list(
     category_in: schemas.CategoryCreate,
-    list_id: int = Depends(get_list_and_check_access), # Use dependency for access check
+    list_id: int = Depends(get_shopping_list_for_check_access), # Use dependency for access check
     db: Session = Depends(deps.get_db),
     current_user: models.User = Depends(deps.get_current_user) # Needed for creator ID
 ):
@@ -48,7 +48,7 @@ def create_category_for_list(
 
 @router.get("/", response_model=schemas.CategoryListResponse)
 def read_categories_for_list(
-    list_id: int = Depends(get_list_and_check_access), # Use dependency
+    list_id: int = Depends(get_shopping_list_for_check_access), # Use dependency
     db: Session = Depends(deps.get_db)
     # current_user: models.User = Depends(deps.get_current_user) # Not needed if dependency handles access
 ):
@@ -61,7 +61,7 @@ def read_categories_for_list(
 @router.get("/{category_id}", response_model=schemas.Category)
 def read_category(
     category_id: int,
-    list_id: int = Depends(get_list_and_check_access), # Ensure user can access parent list
+    list_id: int = Depends(get_shopping_list_for_check_access), # Ensure user can access parent list
     db: Session = Depends(deps.get_db)
     # current_user: models.User = Depends(deps.get_current_user) # Not needed
 ):
@@ -77,7 +77,7 @@ def read_category(
 def update_category(
     category_id: int,
     category_in: schemas.CategoryUpdate,
-    list_id: int = Depends(get_list_and_check_access), # Check access to list
+    list_id: int = Depends(get_shopping_list_for_check_access), # Check access to list
     db: Session = Depends(deps.get_db),
     current_user: models.User = Depends(deps.get_current_user) # Needed for updater ID
 ):
@@ -100,7 +100,7 @@ def update_category(
 @router.delete("/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_category(
     category_id: int,
-    list_id: int = Depends(get_list_and_check_access), # Check access to list
+    list_id: int = Depends(get_shopping_list_for_check_access), # Check access to list
     db: Session = Depends(deps.get_db)
     # current_user: models.User = Depends(deps.get_current_user) # Not strictly needed for delete access check
 ):

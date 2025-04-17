@@ -33,10 +33,10 @@ def get_users_by_usernames(db: Session, usernames: List[str]) -> List[models.Use
     return db.query(models.User).filter(models.User.username.in_(usernames)).all()
 
 
-# --- List CRUD ---
-def create_list(db: Session, list_data: schemas.ListCreate, owner_id: int) -> models.List:
-    """Creates a new list and adds the owner as a member."""
-    db_list = models.List(
+# --- ShoppingList CRUD ---
+def create_shopping_list(db: Session, list_data: schemas.ShoppingListCreate, owner_id: int) -> models.ShoppingList:
+    """Creates a new shopping list and adds the owner as a member."""
+    db_list = models.ShoppingList(
         name=list_data.name,
         list_type=list_data.list_type,
         owner_id=owner_id
@@ -65,21 +65,21 @@ def create_list(db: Session, list_data: schemas.ListCreate, owner_id: int) -> mo
 
     return db_list
 
-def get_list(db: Session, list_id: int) -> Optional[models.List]:
-    """Gets a single list by ID, eager loading owner and members."""
-    return db.query(models.List).options(
-        selectinload(models.List.owner),
-        selectinload(models.List.members).selectinload(models.ListMember.user)
-    ).filter(models.List.id == list_id).first()
+def get_shopping_list(db: Session, list_id: int) -> Optional[models.ShoppingList]:
+    """Gets a single shopping list by ID, eager loading owner and members."""
+    return db.query(models.ShoppingList).options(
+        selectinload(models.ShoppingList.owner),
+        selectinload(models.ShoppingList.members).selectinload(models.ListMember.user)
+    ).filter(models.ShoppingList.id == list_id).first()
 
-def get_lists_for_user(db: Session, user_id: int) -> List[models.List]:
-    """Gets all lists a user is a member of."""
-    return db.query(models.List).join(models.ListMember).options(
-         selectinload(models.List.owner),
-         selectinload(models.List.members).selectinload(models.ListMember.user)
-    ).filter(models.ListMember.user_id == user_id).order_by(models.List.name).all()
+def get_shopping_lists_for_user(db: Session, user_id: int) -> List[models.ShoppingList]:
+    """Gets all shopping lists a user is a member of."""
+    return db.query(models.ShoppingList).join(models.ListMember).options(
+         selectinload(models.ShoppingList.owner),
+         selectinload(models.ShoppingList.members).selectinload(models.ListMember.user)
+    ).filter(models.ListMember.user_id == user_id).order_by(models.ShoppingList.name).all()
 
-def update_list(db: Session, db_list: models.List, list_update: schemas.ListUpdate) -> models.List:
+def update_shopping_list(db: Session, db_list: models.ShoppingList, list_update: schemas.ShoppingListUpdate) -> models.ShoppingList:
     """Updates list properties."""
     update_data = list_update.model_dump(exclude_unset=True)
     for key, value in update_data.items():
@@ -92,12 +92,12 @@ def update_list(db: Session, db_list: models.List, list_update: schemas.ListUpda
         db.refresh(member, attribute_names=['user'])
     return db_list
 
-def delete_list(db: Session, db_list: models.List):
+def delete_shopping_list(db: Session, db_list: models.ShoppingList):
     """Deletes a list and its cascaded members/categories/items."""
     db.delete(db_list)
     db.commit()
 
-def add_list_member(db: Session, db_list: models.List, user_id: int) -> Optional[models.ListMember]:
+def add_list_member(db: Session, db_list: models.ShoppingList, user_id: int) -> Optional[models.ListMember]:
     """Adds a user to a list if they are not already a member."""
     existing_member = db.query(models.ListMember).filter(
         models.ListMember.list_id == db_list.id,
@@ -113,7 +113,7 @@ def add_list_member(db: Session, db_list: models.List, user_id: int) -> Optional
     db.refresh(member, attribute_names=['user']) # Load user for response if needed
     return member
 
-def remove_list_member(db: Session, db_list: models.List, user_id: int) -> bool:
+def remove_list_member(db: Session, db_list: models.ShoppingList, user_id: int) -> bool:
     """Removes a member from a list. Cannot remove the owner."""
     if db_list.owner_id == user_id:
         raise ValueError("Cannot remove the owner from the list.")
@@ -136,7 +136,7 @@ def check_user_list_access(db: Session, list_id: int, user_id: int) -> bool:
         models.ListMember.user_id == user_id
     ).count() > 0
 
-def get_list_owner(db: Session, list_id: int) -> Optional[int]:
+def get_shopping_list_owner(db: Session, list_id: int) -> Optional[int]:
     """Gets the owner ID of a list."""
     list_obj = db.query(models.List.owner_id).filter(models.List.id == list_id).first()
     return list_obj.owner_id if list_obj else None

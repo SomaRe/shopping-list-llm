@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.database import init_db
 # Import endpoint modules
-from app.api.endpoints import items, categories, chat, login, lists # Added lists
+from app.api.endpoints import items, categories, chat, login, shopping_lists # Added shopping_lists
 
 # IMPORTANT: Recreate the database for these changes to take effect easily
 # In production, use migrations (e.g., Alembic)
@@ -35,7 +35,7 @@ app.add_middleware(
 api_prefix = "/api/v1"
 
 app.include_router(login.router, prefix=f"{api_prefix}/login", tags=["Login"])
-app.include_router(lists.router, prefix=f"{api_prefix}/lists", tags=["Lists"]) # Add lists router
+app.include_router(shopping_lists.router, prefix=f"{api_prefix}/lists", tags=["Shopping Lists"]) # Add shopping_lists router
 
 # Nest categories under lists
 app.include_router(
