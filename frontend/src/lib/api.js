@@ -21,26 +21,53 @@ async function handleAxiosResponse(axiosPromise) {
 }
 
 
-// -- Categories --
-export async function fetchCategories() {
-    const response = await handleAxiosResponse(apiClient.get('/categories/'));
-    // Assuming the backend still wraps categories in a 'categories' key
-    return response.categories || response; // Adjust if backend structure changed
+// --- Shopping Lists ---
+export async function fetchLists() {
+    return handleAxiosResponse(apiClient.get('/lists/'));
 }
 
-export async function addCategory(payload) {
-    return handleAxiosResponse(apiClient.post('/categories/', payload));
+export async function createList(payload) {
+    return handleAxiosResponse(apiClient.post('/lists/', payload));
 }
 
-export async function deleteCategory(categoryId) {
-    return handleAxiosResponse(apiClient.delete(`/categories/${categoryId}`));
+export async function getListDetails(listId) {
+    return handleAxiosResponse(apiClient.get(`/lists/${listId}`));
 }
 
-// -- Items --
-export async function fetchItems() {
-    const response = await handleAxiosResponse(apiClient.get('/items/'));
-     // Assuming the backend still wraps items in an 'items' key
-    return response.items || response; // Adjust if backend structure changed
+export async function updateList(listId, payload) {
+    return handleAxiosResponse(apiClient.put(`/lists/${listId}`, payload));
+}
+
+export async function deleteList(listId) {
+    return handleAxiosResponse(apiClient.delete(`/lists/${listId}`));
+}
+
+export async function addListMember(listId, username) {
+    return handleAxiosResponse(apiClient.post(`/lists/${listId}/members`, { username }));
+}
+
+export async function removeListMember(listId, userIdToRemove) {
+    return handleAxiosResponse(apiClient.delete(`/lists/${listId}/members/${userIdToRemove}`));
+}
+
+// --- Categories (Now require listId) ---
+export async function fetchCategories(listId) {
+    const response = await handleAxiosResponse(apiClient.get(`/lists/${listId}/categories/`));
+    return response.categories || [];
+}
+
+export async function addCategory(listId, payload) {
+    return handleAxiosResponse(apiClient.post(`/lists/${listId}/categories/`, payload));
+}
+
+export async function deleteCategory(listId, categoryId) {
+    return handleAxiosResponse(apiClient.delete(`/lists/${listId}/categories/${categoryId}`));
+}
+
+// --- Items (Now require listId for fetching multiple) ---
+export async function fetchItems(listId) {
+    const response = await handleAxiosResponse(apiClient.get(`/items/?list_id=${listId}`));
+    return response.items || [];
 }
 
 export async function addItem(payload) {
@@ -48,11 +75,6 @@ export async function addItem(payload) {
 }
 
 export async function updateItem(itemId, payload) {
-    // Use PATCH if your backend supports partial updates, otherwise stick to PUT
-    // FastAPI PUT often requires the full object, while PATCH handles partials.
-    // Let's assume PUT requires the full object based on the previous setup,
-    // but your EditItemModal only sends partials. Adjust backend or payload if needed.
-    // For now, using PUT as before.
     return handleAxiosResponse(apiClient.put(`/items/${itemId}`, payload));
 }
 
@@ -60,8 +82,8 @@ export async function deleteItem(itemId) {
     return handleAxiosResponse(apiClient.delete(`/items/${itemId}`));
 }
 
-// -- Chat --
-export async function sendChatMessage(messages) {
-    const payload = { messages };
+// --- Chat (Now requires listId) ---
+export async function sendChatMessage(messages, listId) {
+    const payload = { messages, list_id: listId };
     return handleAxiosResponse(apiClient.post('/chat/', payload));
 }

@@ -3,7 +3,7 @@ import * as api from '../lib/api';
 import { GrClearOption } from "react-icons/gr";
 import { IoSend } from "react-icons/io5";
 
-function ChatModal({ show, onClose, onStateChange }) {
+function ChatModal({ show, onClose, onStateChange, listId }) {
     const [messages, setMessages] = useState([]);
     const [currentInput, setCurrentInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -29,7 +29,7 @@ function ChatModal({ show, onClose, onStateChange }) {
         setError(null);
 
         try {
-            const response = await api.sendChatMessage(updatedMessages);
+            const response = await api.sendChatMessage(updatedMessages, listId);
             setMessages(prevMessages => [...prevMessages, response.message]);
             if (response.message?.content?.toLowerCase().includes("list updated") ||
                 response.message?.content?.toLowerCase().includes("added") ||
@@ -87,8 +87,14 @@ function ChatModal({ show, onClose, onStateChange }) {
                 <div ref={chatHistoryRef} className="flex-1 overflow-y-auto p-4 space-y-4">
                     {messages.length === 0 && !isLoading && (
                          <div className="text-center text-base-content/70 text-sm">
-                            <p>Start chatting to manage your list!</p>
-                            <p className="text-xs mt-1">e.g., "Add milk, eggs, and bread"</p>
+                            {!listId ? (
+                                <p className="text-error">Error: No list selected for chat.</p>
+                            ) : (
+                                <>
+                                <p>Ask me to add, remove, or list items!</p>
+                                <p className="text-xs mt-1">e.g., "Add milk to Dairy"</p>
+                                </>
+                            )}
                          </div>
                     )}
                     {messages.map((message, i) => (

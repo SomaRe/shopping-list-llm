@@ -34,7 +34,7 @@ def create_list(
         if current_user.username in list_in.share_with_usernames:
             list_in.share_with_usernames.remove(current_user.username)
 
-    return crud.create_list(db=db, list_data=list_in, owner_id=current_user.id)
+    return crud.create_shopping_list(db=db, list_data=list_in, owner_id=current_user.id)
 
 @router.get("/", response_model=List[schemas.ShoppingList])
 def read_lists(
@@ -44,7 +44,7 @@ def read_lists(
     """
     Retrieve all lists the current user is a member of.
     """
-    return crud.get_lists_for_user(db=db, user_id=current_user.id)
+    return crud.get_shopping_lists_for_user(db=db, user_id=current_user.id)
 
 @router.get("/{list_id}", response_model=schemas.ShoppingList)
 def read_list(
@@ -57,7 +57,7 @@ def read_list(
     """
     if not crud.check_user_list_access(db=db, list_id=list_id, user_id=current_user.id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to access this list")
-    db_list = crud.get_list(db, list_id=list_id)
+    db_list = crud.get_shopping_list(db, list_id=list_id)
     if db_list is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="List not found")
     return db_list

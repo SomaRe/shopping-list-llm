@@ -40,7 +40,7 @@ async def handle_chat(
         if not crud.check_user_list_access(db, list_id=list_id_context, user_id=current_user.id):
              raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to access the specified list for chat.")
         # Get list details for the prompt
-        db_list = crud.get_list(db, list_id=list_id_context)
+        db_list = crud.get_shopping_list(db, list_id=list_id_context)
         if db_list:
             list_name_context = f"the list '{db_list.name}' (ID: {list_id_context})"
             categories = crud.get_categories_for_list(db, list_id=list_id_context)

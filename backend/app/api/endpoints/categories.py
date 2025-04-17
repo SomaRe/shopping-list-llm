@@ -16,7 +16,7 @@ def get_shopping_list_for_check_access(
     """Dependency to get list and verify user access."""
     if not crud.check_user_list_access(db=db, list_id=list_id, user_id=current_user.id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to access this list")
-    db_list = crud.get_list(db, list_id=list_id) # Fetch list object if needed later, or just return list_id
+    db_list = crud.get_shopping_list(db, list_id=list_id) # Fetch list object if needed later, or just return list_id
     if db_list is None: # Should not happen if check_user_list_access passed, but safety check
          raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="List not found")
     # return db_list # Return the list object if needed by the endpoint

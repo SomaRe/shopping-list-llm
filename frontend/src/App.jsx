@@ -11,6 +11,8 @@ import EditItemModal from './components/EditItemModal';
 import FloatingChatButton from './components/FloatingChatButton';
 import ChatModal from './components/ChatModal';
 import Login from './components/Login';
+import ListPageDetail from './pages/ListPageDetail';
+import ShoppingListsPage from './pages/ShoppingListsPage';
 
 const LoadingSpinner = () => (
      <div className="text-center py-10">
@@ -310,20 +312,15 @@ function AppLayout() {
 function App() {
     return (
         <AuthProvider>
-                <Routes>
-                    <Route path="/login" element={<Login />} />
-                    {/* Protected Routes */}
-                    <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-                         {/* AppLayout now renders AppContent */}
-                        <Route path="/" element={null} />
-                        {/* Remove the explicit /home route if AppContent handles everything at root */}
-                        {/* <Route path="/home" element={null} />  <- Removed */}
-                    </Route>
-                    {/* Redirect any unmatched authenticated path to root */}
-                     <Route path="*" element={<Navigate to="/" replace />} />
-                    {/* Unauthenticated users hitting '*' will be caught by ProtectedRoute and redirected to /login */}
-
-                </Routes>
+            <Routes>
+                <Route path="/login" element={<Login />} />
+                {/* Protected Routes */}
+                <Route element={<ProtectedRoute />}>
+                    <Route path="/" element={<ShoppingListsPage />} />
+                    <Route path="/lists/:listId" element={<ListPageDetail />} />
+                </Route>
+                <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
         </AuthProvider>
     );
 }
