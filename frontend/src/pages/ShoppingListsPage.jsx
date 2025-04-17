@@ -141,7 +141,7 @@ function ShoppingListsPage() {
                                     </span>
                                 </div>
                                 <p className="text-xs text-base-content/60 mb-1">
-                                    Owned by: {list.owner.username} {list.owner.id === user.id ? '(You)' : ''}
+                                    Owned by: {list.owner.id === user.id ? 'You' : list.owner.username}
                                 </p>
                                 <p className="text-xs text-base-content/60 mb-3">
                                      Members: {list.members.length} ({list.members.map(m => m.user.username).join(', ')})
@@ -151,15 +151,6 @@ function ShoppingListsPage() {
                                         <LuEye className="w-4 h-4"/> View
                                     </Link>
 
-                                    {list.owner.id === user.id && (
-                                        <button
-                                            onClick={() => openManageModal(list)}
-                                            className="btn btn-sm btn-outline btn-secondary"
-                                            title="Manage List & Members"
-                                        >
-                                            <LuSettings className="w-4 h-4"/> Manage
-                                        </button>
-                                    )}
 
                                     {list.owner.id === user.id ? (
                                         <>

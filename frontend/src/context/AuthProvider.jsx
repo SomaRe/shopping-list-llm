@@ -1,24 +1,59 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import AuthContext from './AuthContext';
 import apiClient from '../services/apiClient';
+import * as api from '../lib/api';
 
 export const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(localStorage.getItem('authToken'));
-    const [user, setUser] = useState( () => {
+    const [user, setUser] = useState(() => {
         const savedUser = localStorage.getItem('user');
-        return savedUser ? JSON.parse(savedUser) : null
-    }  // Initialize user state from localStorage
-    );
-    const [isLoading, setIsLoading] = useState(false);
+        try {
+            return savedUser ? JSON.parse(savedUser) : null;
+        } catch (e) {
+            console.error("Failed to parse user from localStorage", e);
+            localStorage.removeItem('user');
+            return null;
+        }
+    });
+    const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    const fetchAndSetUser = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const currentUser = await api.fetchCurrentUser();
+            if (currentUser && currentUser.id && currentUser.username) {
+                setUser(currentUser);
+                localStorage.setItem('user', JSON.stringify(currentUser));
+            } else {
+                console.error("Fetched user data is incomplete:", currentUser);
+                logout();
+            }
+        } catch (fetchError) {
+            console.error("Failed to fetch current user:", fetchError);
+            setError("Session expired or invalid. Please log in again.");
+            logout();
+        } finally {
+             setIsLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
         if (token) {
             apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            if (!user) {
+                fetchAndSetUser();
+            } else {
+                setIsLoading(false);
+            }
         } else {
             delete apiClient.defaults.headers.common['Authorization'];
+            setUser(null);
+            localStorage.removeItem('user');
+            setIsLoading(false);
         }
-    }, [token]);
+    }, [token, fetchAndSetUser, user]);
 
     const login = async (username, password) => {
         setIsLoading(true);
@@ -39,9 +74,7 @@ export const AuthProvider = ({ children }) => {
             setToken(newToken);
             localStorage.setItem('authToken', newToken);
             apiClient.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-            setUser({ username });
-            localStorage.setItem('user', JSON.stringify({username}));
-            setIsLoading(false);
+            await fetchAndSetUser();
             return true;
         } catch (err) {
             console.error("Login failed:", err.response?.data || err.message);
@@ -59,19 +92,23 @@ export const AuthProvider = ({ children }) => {
         setToken(null);
         setUser(null);
         localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
         delete apiClient.defaults.headers.common['Authorization'];
-        // Optionally redirect to login page here via router context or window.location
-        window.location.href = '/login'; // Simple redirect
+        setError(null);
+        if (window.location.pathname !== '/login') {
+             window.location.href = '/login';
+        }
     };
 
     const value = {
         token,
         user,
-        isAuthenticated: !!token, // Simple check if token exists
+        isAuthenticated: !!token && !!user,
         isLoading,
         error,
         login,
         logout,
+        fetchAndSetUser
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -82,6 +82,11 @@ export async function deleteItem(itemId) {
     return handleAxiosResponse(apiClient.delete(`/items/${itemId}`));
 }
 
+// --- Users ---
+export async function fetchCurrentUser() {
+    return handleAxiosResponse(apiClient.get('/users/me'));
+}
+
 // --- Chat (Now requires listId) ---
 export async function sendChatMessage(messages, listId) {
     const payload = { messages, list_id: listId };
