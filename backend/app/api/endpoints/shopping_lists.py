@@ -10,9 +10,9 @@ router = APIRouter()
 
 # --- List Management ---
 
-@router.post("/", response_model=schemas.List, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=schemas.ShoppingList, status_code=status.HTTP_201_CREATED)
 def create_list(
-    list_in: schemas.ListCreate,
+    list_in: schemas.ShoppingListCreate,
     db: Session = Depends(deps.get_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
@@ -36,7 +36,7 @@ def create_list(
 
     return crud.create_list(db=db, list_data=list_in, owner_id=current_user.id)
 
-@router.get("/", response_model=List[schemas.List])
+@router.get("/", response_model=List[schemas.ShoppingList])
 def read_lists(
     db: Session = Depends(deps.get_db),
     current_user: models.User = Depends(deps.get_current_user)
@@ -46,7 +46,7 @@ def read_lists(
     """
     return crud.get_lists_for_user(db=db, user_id=current_user.id)
 
-@router.get("/{list_id}", response_model=schemas.List)
+@router.get("/{list_id}", response_model=schemas.ShoppingList)
 def read_list(
     list_id: int,
     db: Session = Depends(deps.get_db),
@@ -62,10 +62,10 @@ def read_list(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="List not found")
     return db_list
 
-@router.put("/{list_id}", response_model=schemas.List)
+@router.put("/{list_id}", response_model=schemas.ShoppingList)
 def update_list(
     list_id: int,
-    list_in: schemas.ListUpdate,
+    list_in: schemas.ShoppingListUpdate,
     db: Session = Depends(deps.get_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
@@ -111,7 +111,7 @@ def delete_list(
 class MemberRequest(BaseModel):
     username: str
 
-@router.post("/{list_id}/members", response_model=schemas.ListMemberInfo, status_code=status.HTTP_201_CREATED)
+@router.post("/{list_id}/members", response_model=schemas.ShoppingListMemberInfo, status_code=status.HTTP_201_CREATED)
 def add_list_member(
     list_id: int,
     member_request: MemberRequest,
