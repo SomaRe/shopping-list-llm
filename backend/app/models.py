@@ -66,7 +66,7 @@ class ListMember(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     added_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    list = relationship("List", back_populates="members")
+    list = relationship("ShoppingList", back_populates="members")
     user = relationship("User", back_populates="list_memberships")
 
     def __repr__(self):
@@ -81,7 +81,7 @@ class Category(Base):
     name = Column(String, index=True, nullable=False)
 
     list_id = Column(Integer, ForeignKey("lists.id"), nullable=False)
-    list = relationship("List", back_populates="categories")
+    list = relationship("ShoppingList", back_populates="categories")
 
     created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     creator = relationship("User", back_populates="created_categories", foreign_keys=[created_by_user_id])

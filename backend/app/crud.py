@@ -138,7 +138,7 @@ def check_user_list_access(db: Session, list_id: int, user_id: int) -> bool:
 
 def get_shopping_list_owner(db: Session, list_id: int) -> Optional[int]:
     """Gets the owner ID of a list."""
-    list_obj = db.query(models.List.owner_id).filter(models.List.id == list_id).first()
+    list_obj = db.query(models.ShoppingList.owner_id).filter(models.ShoppingList.id == list_id).first()
     return list_obj.owner_id if list_obj else None
 
 
