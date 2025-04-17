@@ -1,29 +1,26 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# Import config
 from app.core.config import settings
-# Adjusted imports
 from app.database import init_db
-from app.api.endpoints import items, categories, chat
-from app.api.endpoints import login # Import login endpoint
+# Import endpoint modules
+from app.api.endpoints import items, categories, chat, login, lists # Added lists
 
-# Call init_db() to ensure tables are created on startup
-# Consider moving this to a separate script/migration tool for production
+# IMPORTANT: Recreate the database for these changes to take effect easily
+# In production, use migrations (e.g., Alembic)
 init_db()
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    description="API for managing a grocery list with AI chat integration.",
+    description="API for managing shared/private grocery lists with AI chat integration.",
     version=settings.PROJECT_VERSION,
 )
 
-# Configure CORS
+# Configure CORS (ensure frontend origin is allowed)
 origins = [
-    "http://localhost:5173",
+    "http://localhost:5173", # Common Vite dev origin
     "http://127.0.0.1:5173",
-    "http://localhost:3000",
-    # Add any other origins needed
+    # Add other origins if needed
 ]
 
 app.add_middleware(
@@ -34,11 +31,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
-app.include_router(login.router, prefix="/api/v1/login", tags=["Login"]) # Add login router
-app.include_router(categories.router, prefix="/api/v1/categories", tags=["Categories"])
-app.include_router(items.router, prefix="/api/v1/items", tags=["Items"])
-app.include_router(chat.router, prefix="/api/v1/chat", tags=["AI Chat"]) # Protect if needed
+# --- API Routers ---
+api_prefix = "/api/v1"
+
+app.include_router(login.router, prefix=f"{api_prefix}/login", tags=["Login"])
+app.include_router(lists.router, prefix=f"{api_prefix}/lists", tags=["Lists"]) # Add lists router
+
+# Nest categories under lists
+app.include_router(
+    categories.router,
+    prefix=f"{api_prefix}/lists/{{list_id}}/categories", # Path parameter for list context
+    tags=["Categories"]
+)
+
+# Keep items at top level, but logic inside endpoints uses list context
+app.include_router(items.router, prefix=f"{api_prefix}/items", tags=["Items"])
+
+# Chat endpoint needs list_id in request body now
+app.include_router(chat.router, prefix=f"{api_prefix}/chat", tags=["AI Chat"])
 
 @app.get("/", tags=["Root"])
 async def read_root():

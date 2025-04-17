@@ -1,19 +1,21 @@
 import json
 from sqlalchemy.orm import Session
 from app import crud, models, schemas
+import inspect # For debugging argument mismatches
 
+# --- Tool Definitions (Update descriptions slightly) ---
 tools = [
     {
         "type": "function",
         "function": {
             "name": "list_items",
-            "description": "List grocery items, optionally filtering by category. Shows ticked status.",
+            "description": "List grocery items in the current list, optionally filtering by category name. Shows ticked status, category, and item ID.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "category_name": {
                         "type": "string",
-                        "description": "The name of the category to filter by.",
+                        "description": "The name of the category within the current list to filter by.",
                     }
                 },
                 "required": [],
@@ -24,27 +26,14 @@ tools = [
         "type": "function",
         "function": {
             "name": "add_item",
-            "description": "Add a new item to the grocery list with category name. if category doesn't exist i will be created. Items are added unticked by default.",
+            "description": "Add a new item to the current grocery list. Specify item name and category name. If the category doesn't exist in the current list, it will be created. Items are added unticked by default.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "name": {
-                        "type": "string",
-                        "description": "The name of the item to add.",
-                    },
-                    "category_name": {
-                        "type": "string",
-                        "description": "The name of the category for the item.",
-                    },
-                    "note": {
-                        "type": "string",
-                        "description": "Optional note for the item.",
-                    },
-                    "price_match": {
-                        "type": "boolean",
-                        "description": "Whether to flag the item for price matching.",
-                        "default": False,
-                    }
+                    "name": {"type": "string", "description": "The name of the item to add."},
+                    "category_name": {"type": "string", "description": "The name of the category for the item (will be created in the current list if needed)."},
+                    "note": {"type": "string", "description": "Optional note for the item."},
+                    "price_match": {"type": "boolean", "description": "Whether to flag the item for price matching.", "default": False}
                 },
                 "required": ["name", "category_name"],
             },
@@ -54,14 +43,13 @@ tools = [
         "type": "function",
         "function": {
             "name": "delete_item",
-            "description": "Delete an item from the grocery list by its name.",
+            "description": "Delete an item from the current grocery list by its name. Use item ID if name is ambiguous.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "name": {
-                        "type": "string",
-                        "description": "The name of the item to delete.",
-                    }
+                    "name": {"type": "string", "description": "The name of the item to delete from the current list."},
+                    # Optional: Add ID parameter if needed for disambiguation
+                    # "id": {"type": "integer", "description": "The ID of the item to delete, if name is not unique."}
                 },
                 "required": ["name"],
             },
@@ -71,51 +59,30 @@ tools = [
         "type": "function",
         "function": {
             "name": "update_item",
-            "description": "Update an existing item in the grocery list by its ID.",
+            "description": "Update an existing item in the current grocery list, identified by its ID. Allows changing name, category, note, price match, or ticked status.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "id": {
-                        "type": "integer",
-                        "description": "The ID of the item to update.",
-                    },
-                    "name": {
-                        "type": "string",
-                        "description": "New name for the item.",
-                    },
-                    "category_name": {
-                        "type": "string",
-                        "description": "New category name for the item. Requires category to exist.",
-                    },
-                    "note": {
-                        "type": "string",
-                        "description": "New note for the item.",
-                    },
-                    "price_match": {
-                        "type": "boolean",
-                        "description": "New price match status for the item.",
-                    },
-                    "is_ticked": {
-                        "type": "boolean",
-                        "description": "New ticked status for the item (true/false)."
-                    }
+                    "id": {"type": "integer", "description": "The ID of the item in the current list to update."},
+                    "name": {"type": "string", "description": "New name for the item."},
+                    "category_name": {"type": "string", "description": "New category name for the item (must exist in the current list)."},
+                    "note": {"type": "string", "description": "New note for the item."},
+                    "price_match": {"type": "boolean", "description": "New price match status."},
+                    "is_ticked": {"type": "boolean", "description": "New ticked status (true/false)."}
                 },
-                "required": ["id"],
+                "required": ["id"], # ID is mandatory to identify item
             },
         },
     },
-    {
+     {
         "type": "function",
         "function": {
             "name": "tick_item",
-            "description": "Mark a specific grocery item as ticked/acquired by its name.",
+            "description": "Mark a specific grocery item in the current list as ticked/acquired by its name. Use ID if ambiguous.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "name": {
-                        "type": "string",
-                        "description": "The exact name of the item to mark as ticked.",
-                    }
+                    "name": {"type": "string", "description": "The exact name of the item in the current list to mark as ticked."}
                 },
                 "required": ["name"],
             },
@@ -125,14 +92,11 @@ tools = [
         "type": "function",
         "function": {
             "name": "untick_item",
-            "description": "Mark a specific grocery item as unticked by its name.",
-            "parameters": {
+            "description": "Mark a specific grocery item in the current list as unticked by its name. Use ID if ambiguous.",
+             "parameters": {
                 "type": "object",
                 "properties": {
-                    "name": {
-                        "type": "string",
-                        "description": "The exact name of the item to mark as unticked.",
-                    }
+                    "name": {"type": "string", "description": "The exact name of the item in the current list to mark as unticked."}
                 },
                 "required": ["name"],
             },
@@ -142,25 +106,19 @@ tools = [
         "type": "function",
         "function": {
             "name": "list_categories",
-            "description": "List all available grocery categories.",
-            "parameters": {
-                "type": "object",
-                "properties": {}
-            },
+            "description": "List all available grocery categories within the current list.",
+            "parameters": {"type": "object", "properties": {}},
         },
     },
     {
         "type": "function",
         "function": {
             "name": "add_category",
-            "description": "Add a new category for organizing grocery items.",
+            "description": "Add a new category to the current list.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "name": {
-                        "type": "string",
-                        "description": "The name of the new category.",
-                    }
+                    "name": {"type": "string", "description": "The name of the new category for the current list."}
                 },
                 "required": ["name"],
             },
@@ -170,14 +128,11 @@ tools = [
         "type": "function",
         "function": {
             "name": "delete_category",
-            "description": "Delete a category if it's empty.",
+            "description": "Delete a category from the current list if it's empty.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "name": {
-                        "type": "string",
-                        "description": "The name of the category to delete.",
-                    }
+                    "name": {"type": "string", "description": "The name of the category in the current list to delete."}
                 },
                 "required": ["name"],
             },
@@ -185,174 +140,219 @@ tools = [
     }
 ]
 
-def _list_items_impl(db: Session, current_user: models.User, category_name: str | None = None):
-    items = crud.get_items(db, owner_id=current_user.id)
+
+# --- Tool Implementation Functions (Accept list_id) ---
+
+def _list_items_impl(db: Session, list_id: int, category_name: str | None = None):
+    # Permission check already done in chat endpoint
+    items = crud.get_items_for_list(db, list_id=list_id)
+
     if category_name:
-        category = crud.get_category_by_name(db, name=category_name)
-        if not category:
-            return f"Error: Category '{category_name}' not found."
-        items = [item for item in items if item.category_id == category.id]
+        # Filter items further by category name (case-insensitive check might be better)
+        items = [item for item in items if item.category.name.lower() == category_name.lower()]
+        if not items:
+             return f"No items found in category '{category_name}' within this list."
 
     if not items:
-        return f"No items found{f' in category {category_name}' if category_name else ''}."
+        return "This list is currently empty."
 
     item_list_str = "\n".join([
-        f"- [{'x' if item.is_ticked else ' '}] {item.name}{f' ({item.note})' if item.note else ''}{' [Price Match]' if item.price_match else ''} (Category: {item.category.name}, ID: {item.id})"
+        f"- [{'x' if item.is_ticked else ' '}] {item.name} (ID: {item.id})"
+        f"{f' [Note: {item.note}]' if item.note else ''}"
+        f"{' [Price Match]' if item.price_match else ''}"
+        f" (Category: {item.category.name})"
         for item in items
     ])
-    return f"Current items{f' in {category_name}' if category_name else ''}:\n{item_list_str}"
+    return f"Items in the current list{f' (filtered by category {category_name})' if category_name else ''}:\n{item_list_str}"
 
-def _add_item_impl(db: Session, current_user: models.User, name: str, category_name: str, note: str | None = None, price_match: bool = False):
-    category = crud.get_category_by_name(db, name=category_name)
+def _add_item_impl(db: Session, current_user: models.User, list_id: int, name: str, category_name: str, note: str | None = None, price_match: bool = False):
+    # Check if category exists in this list, create if not
+    category = crud.get_category_by_name(db, list_id=list_id, name=category_name)
     if not category:
-        existing = crud.get_category_by_name(db, name=category_name)
-        if existing:
-             category = existing
-        else:
-            try:
-                category = crud.create_category(db, schemas.CategoryCreate(name=category_name))
-            except Exception as e:
-                db.rollback()
-                category = crud.get_category_by_name(db, name=category_name)
-                if not category:
-                    return f"Error creating/finding category '{category_name}': {e}"
+        try:
+            category_create_schema = schemas.CategoryCreate(name=category_name)
+            category = crud.create_category(db, category_data=category_create_schema, list_id=list_id, user_id=current_user.id)
+            # Confirmation message part? Let the final AI response handle confirmation.
+        except ValueError as e: # Handles duplicate category name if created concurrently
+            db.rollback()
+            # Attempt to fetch again in case of race condition
+            category = crud.get_category_by_name(db, list_id=list_id, name=category_name)
+            if not category: # If still not found after rollback and fetch, raise error
+                 return f"Error: Could not create or find category '{category_name}' in this list: {e}"
+        except Exception as e:
+             db.rollback()
+             return f"Error creating category '{category_name}': {str(e)}"
 
-    item_create = schemas.ItemCreate(
+
+    # Check if item already exists in this category in this list
+    existing_item = db.query(models.Item).filter(
+         models.Item.category_id == category.id,
+         models.Item.name.ilike(name) # Case-insensitive check?
+    ).first()
+    if existing_item:
+         return f"Item '{name}' already exists in category '{category.name}' in this list (ID: {existing_item.id})."
+
+
+    item_create_schema = schemas.ItemCreate(
         name=name,
         category_id=category.id,
         note=note,
-        price_match=price_match,
+        price_match=price_match
     )
     try:
-        existing_item = db.query(models.Item).filter(
-             models.Item.owner_id == current_user.id,
-             models.Item.name == name,
-             models.Item.category_id == category.id
-         ).first()
-
-        if existing_item:
-            return f"Item '{name}' already exists in category '{category_name}'."
-
-        item = crud.create_item(db=db, item=item_create, owner_id=current_user.id)
-        return f"Successfully added item: {item.name} to category {category.name}."
+        item = crud.create_item(db=db, item_data=item_create_schema, user_id=current_user.id)
+        return f"Successfully added item: '{item.name}' (ID: {item.id}) to category '{category.name}' in the current list."
     except Exception as e:
         db.rollback()
-        return f"Error adding item '{name}': {e}"
+        return f"Error adding item '{name}': {str(e)}"
 
-def _delete_item_impl(db: Session, current_user: models.User, name: str):
-    db_item = db.query(models.Item).filter(
-        models.Item.owner_id == current_user.id,
-        models.Item.name.ilike(name)
-    ).first()
+def _delete_item_impl(db: Session, list_id: int, name: str):
+     # Find item by name within the specific list
+    db_item = crud.find_item_by_name_in_list(db, list_id=list_id, item_name=name)
 
     if not db_item:
-        return f"Error: Item '{name}' not found."
+        # Maybe list similar items? Or just report not found.
+        return f"Error: Item '{name}' not found in this list."
+        # Consider searching across all user's lists if name is unique enough? Too complex for now.
 
-    item_id = db_item.id
+    item_id_to_delete = db_item.id
+    item_name_deleted = db_item.name # Get exact name before deleting
     try:
-        deleted_item = crud.delete_item(db, item_id=item_id, owner_id=current_user.id)
-        if deleted_item:
-             return f"Successfully deleted item: {deleted_item.name} (ID: {item_id})."
-        else:
-             return f"Error: Item '{name}' (ID: {item_id}) could not be deleted or was already gone."
+        crud.delete_item(db, db_item=db_item)
+        return f"Successfully deleted item: '{item_name_deleted}' (ID: {item_id_to_delete}) from the current list."
     except Exception as e:
         db.rollback()
-        return f"Error deleting item '{name}' (ID: {item_id}): {str(e)}"
+        return f"Error deleting item '{item_name_deleted}' (ID: {item_id_to_delete}): {str(e)}"
 
 
-def _update_item_impl(db: Session, current_user: models.User, id: int, **kwargs):
-    db_item = crud.get_item(db, item_id=id, owner_id=current_user.id)
-    if not db_item:
-         return f"Error: Item with ID {id} not found."
+def _update_item_impl(db: Session, current_user: models.User, list_id: int, id: int, **kwargs):
+    # Get the item and check if it belongs to the context list_id
+    db_item = crud.get_item(db, item_id=id)
+    if not db_item or db_item.category.list_id != list_id:
+         return f"Error: Item with ID {id} not found in the current list."
 
-    category_id = db_item.category_id
-    if 'category_name' in kwargs:
+    # Process category_name separately if provided
+    update_payload = {}
+    if 'category_name' in kwargs and kwargs['category_name'] is not None:
         category_name = kwargs.pop('category_name')
-        category = crud.get_category_by_name(db, name=category_name)
+        category = crud.get_category_by_name(db, list_id=list_id, name=category_name)
         if not category:
-            return f"Error: Category '{category_name}' not found. Cannot update item."
-        category_id = category.id
+            return f"Error: Category '{category_name}' not found in the current list. Cannot update item."
+        update_payload['category_id'] = category.id
+    elif 'category_id' in kwargs: # If ID provided directly
+        cat_id = kwargs['category_id']
+        category = crud.get_category(db, category_id=cat_id)
+        if not category or category.list_id != list_id:
+            return f"Error: Category ID {cat_id} not found or does not belong to the current list."
+        update_payload['category_id'] = cat_id
 
-    update_payload = {k: v for k, v in kwargs.items() if v is not None}
-    update_payload['category_id'] = category_id
+
+    # Add remaining valid kwargs to payload
+    valid_keys = schemas.ItemUpdate.model_fields.keys()
+    for k, v in kwargs.items():
+        if k in valid_keys and v is not None:
+            update_payload[k] = v
 
     if not update_payload:
-        return f"No updates specified for item ID {id}."
+        return f"No valid updates specified for item ID {id}."
 
     try:
+        # Create the Pydantic schema for validation
         item_update_schema = schemas.ItemUpdate(**update_payload)
-        updated_item = crud.update_item(db, item_id=id, item_update=item_update_schema, owner_id=current_user.id)
-        return f"Successfully updated item: {updated_item.name} (ID: {id})."
-    except ValueError as ve:
+
+        updated_item = crud.update_item(
+            db=db,
+            db_item=db_item,
+            item_update=item_update_schema,
+            user_id=current_user.id
+        )
+        return f"Successfully updated item: '{updated_item.name}' (ID: {id}) in the current list."
+    except ValueError as ve: # Catches CRUD validation errors
          db.rollback()
          return f"Error updating item ID {id}: {str(ve)}"
     except Exception as e:
         db.rollback()
-        return f"Error updating item ID {id}: {str(e)}"
+        # Log the full error for debugging
+        print(f"Unexpected error updating item {id}: {e}")
+        import traceback
+        traceback.print_exc()
+        return f"Unexpected error updating item ID {id}: {str(e)}"
 
 
-def _tick_or_untick_item_impl(db: Session, current_user: models.User, name: str, tick_status: bool):
-    db_item = db.query(models.Item).filter(
-        models.Item.owner_id == current_user.id,
-        models.Item.name.ilike(name)
-    ).first()
+def _tick_or_untick_item_impl(db: Session, current_user: models.User, list_id: int, name: str, tick_status: bool):
+    # Find item by name within the specific list
+    db_item = crud.find_item_by_name_in_list(db, list_id=list_id, item_name=name)
 
     if not db_item:
-        return f"Error: Item '{name}' not found."
+        return f"Error: Item '{name}' not found in this list."
 
     if db_item.is_ticked == tick_status:
         action = "ticked" if tick_status else "unticked"
-        return f"Item '{name}' is already {action}."
+        return f"Item '{db_item.name}' (ID: {db_item.id}) is already {action}."
 
     try:
         item_update_schema = schemas.ItemUpdate(is_ticked=tick_status)
-        updated_item = crud.update_item(db, item_id=db_item.id, item_update=item_update_schema, owner_id=current_user.id)
+        updated_item = crud.update_item(
+            db=db,
+            db_item=db_item,
+            item_update=item_update_schema,
+            user_id=current_user.id
+        )
         action = "ticked" if tick_status else "unticked"
-        return f"Successfully marked item '{updated_item.name}' as {action}."
+        return f"Successfully marked item '{updated_item.name}' (ID: {updated_item.id}) as {action}."
     except Exception as e:
         db.rollback()
         return f"Error updating ticked status for item '{name}': {str(e)}"
 
-def _tick_item_impl(db: Session, current_user: models.User, name: str):
-    return _tick_or_untick_item_impl(db, current_user, name, tick_status=True)
+def _tick_item_impl(db: Session, current_user: models.User, list_id: int, name: str):
+    return _tick_or_untick_item_impl(db, current_user, list_id, name, tick_status=True)
 
-def _untick_item_impl(db: Session, current_user: models.User, name: str):
-    return _tick_or_untick_item_impl(db, current_user, name, tick_status=False)
+def _untick_item_impl(db: Session, current_user: models.User, list_id: int, name: str):
+    return _tick_or_untick_item_impl(db, current_user, list_id, name, tick_status=False)
 
-def _list_categories_impl(db: Session):
-    categories = crud.get_categories(db)
+def _list_categories_impl(db: Session, list_id: int):
+    categories = crud.get_categories_for_list(db, list_id=list_id)
     if not categories:
-        return "No categories found."
-    return "Available categories:\n" + "\n".join([f"- {cat.name}" for cat in categories])
+        return "No categories found in this list."
+    return "Available categories in this list:\n" + "\n".join([f"- {cat.name} (ID: {cat.id})" for cat in categories])
 
-def _add_category_impl(db: Session, name: str):
-    existing_category = crud.get_category_by_name(db, name=name)
+def _add_category_impl(db: Session, current_user: models.User, list_id: int, name: str):
+    existing_category = crud.get_category_by_name(db, list_id=list_id, name=name)
     if existing_category:
-        return f"Category '{name}' already exists."
+        return f"Category '{name}' already exists in this list."
     try:
-        category = crud.create_category(db, schemas.CategoryCreate(name=name))
-        return f"Successfully added category: {category.name}."
+        category_create_schema = schemas.CategoryCreate(name=name)
+        category = crud.create_category(db, category_data=category_create_schema, list_id=list_id, user_id=current_user.id)
+        return f"Successfully added category: '{category.name}' (ID: {category.id}) to the current list."
+    except ValueError as e: # Duplicate name constraint
+        db.rollback()
+        return f"Error adding category '{name}': {str(e)}"
     except Exception as e:
         db.rollback()
         return f"Error adding category '{name}': {str(e)}"
 
 
-def _delete_category_impl(db: Session, name: str):
-    category = crud.get_category_by_name(db, name=name)
+def _delete_category_impl(db: Session, list_id: int, name: str):
+    category = crud.get_category_by_name(db, list_id=list_id, name=name)
     if not category:
-        return f"Error: Category '{name}' not found."
+        return f"Error: Category '{name}' not found in this list."
 
-    if category.items:
-        item_count = db.query(models.Item).filter(models.Item.category_id == category.id).count()
-        if item_count > 0:
-             return f"Cannot delete category '{name}' - it still contains {item_count} item(s)."
+    # Check for items (using lazy dynamic count)
+    if category.items.count() > 0:
+        item_count = category.items.count() # Get count again if needed for message
+        return f"Cannot delete category '{name}' - it still contains {item_count} item(s)."
 
+    category_id_deleted = category.id
+    category_name_deleted = category.name
     try:
-        crud.delete_category(db, category_id=category.id)
-        return f"Successfully deleted category: {name}."
+        crud.delete_category(db, db_category=category) # Pass the object
+        return f"Successfully deleted category: '{category_name_deleted}' (ID: {category_id_deleted}) from the current list."
+    except ValueError as e: # Should be caught by item check, but safety
+        db.rollback()
+        return f"Error deleting category '{category_name_deleted}': {str(e)}"
     except Exception as e:
         db.rollback()
-        return f"Error deleting category '{name}': {str(e)}"
+        return f"Error deleting category '{category_name_deleted}': {str(e)}"
 
 available_functions = {
     "list_items": _list_items_impl,
@@ -366,35 +366,55 @@ available_functions = {
     "delete_category": _delete_category_impl,
 }
 
-async def execute_function_call(tool_call, db: Session, current_user: models.User):
+# Updated executor function
+async def execute_function_call(tool_call, db: Session, current_user: models.User, list_id: int | None):
     function_name = tool_call.function.name
     function_to_call = available_functions.get(function_name)
-    try:
-        arguments_str = tool_call.function.arguments or "{}"
-        function_args = json.loads(arguments_str)
-    except json.JSONDecodeError:
-        return f"Error: Invalid arguments format for function {function_name}. Expected JSON."
-
     if not function_to_call:
         return f"Error: Function {function_name} not found."
 
-    print(f"Executing function: {function_name} with args: {function_args}")
+    # Check if list_id context is required but missing
+    sig = inspect.signature(function_to_call)
+    requires_list_id = 'list_id' in sig.parameters
+    if requires_list_id and list_id is None:
+        return f"Error: Action '{function_name}' requires you to specify which list you are working with first."
 
     try:
+        arguments_str = tool_call.function.arguments or "{}"
+        function_args = json.loads(arguments_str)
+    except json.JSONDecodeError as e:
+        return f"Error: Invalid arguments format for function {function_name}. Expected JSON. Error: {e}"
+
+    print(f"Executing function: {function_name} with args: {function_args} in list context: {list_id}")
+
+    try:
+        # Inject context arguments
         function_args['db'] = db
+        if 'current_user' in sig.parameters: # Pass user if function expects it
+             function_args['current_user'] = current_user
+        if requires_list_id: # Pass list_id if function expects it
+            function_args['list_id'] = list_id
 
-        if function_name in ['list_items', 'add_item', 'delete_item', 'update_item', 'tick_item', 'untick_item']:
-            function_args['current_user'] = current_user
+        # Validate required arguments before calling (basic check)
+        required_params = [p.name for p in sig.parameters.values() if p.default is p.empty and p.name not in ['db', 'current_user', 'list_id']]
+        missing_args = [rp for rp in required_params if rp not in function_args]
+        if missing_args:
+            return f"Error calling {function_name}: Missing required arguments: {', '.join(missing_args)}"
 
+        # Call the implementation function
         result = function_to_call(**function_args)
         return result
 
     except TypeError as te:
+         # More detailed error for argument mismatch
          print(f"Argument mismatch error executing function {function_name}: {te}")
-         import inspect
-         sig = inspect.signature(function_to_call)
          expected_args = list(sig.parameters.keys())
-         return f"Error calling {function_name}: Incorrect arguments provided. Expected arguments like: {expected_args}. Received: {list(function_args.keys())}. Error: {str(te)}"
+         provided_args = list(function_args.keys())
+         return f"Error calling {function_name}: Argument mismatch. Expected arguments like: {expected_args}. Provided: {provided_args}. Error details: {str(te)}"
     except Exception as e:
+        # Catch-all for other errors during function execution
         print(f"Error executing function {function_name}: {e}")
-        return f"Error executing {function_name}: {str(e)}"
+        import traceback
+        traceback.print_exc() # Print full stack trace to server logs
+        # Return a user-friendly error message
+        return f"An unexpected error occurred while trying to execute '{function_name}': {str(e)}"
