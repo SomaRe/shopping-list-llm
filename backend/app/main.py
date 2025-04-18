@@ -20,6 +20,7 @@ app = FastAPI(
 origins = [
     "http://localhost:5173", # Common Vite dev origin
     "http://127.0.0.1:5173",
+    "http://localhost:3000",
     # Add other origins if needed
 ]
 
