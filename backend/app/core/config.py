@@ -2,7 +2,12 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 
-env_path = Path('.') / '.env'
+CONFIG_DIR = Path(__file__).resolve().parent
+APP_DIR = CONFIG_DIR.parent
+BACKEND_DIR = APP_DIR.parent
+PROJECT_ROOT = BACKEND_DIR.parent
+
+env_path = BACKEND_DIR / '.env'
 load_dotenv(dotenv_path=env_path)
 
 class Settings:
@@ -10,12 +15,12 @@ class Settings:
     PROJECT_VERSION: str = "0.1.0"
 
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./grocery_app.db")
-    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "default_secret_key") # Provide a default only for initial setup if needed
+    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "default_secret_key")
     ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
     # Token expires in 30 minutes
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
 
-    # --- New OpenRouter Settings ---
+    # --- OpenRouter Settings ---
     OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY")
     OPENROUTER_BASE_URL: str = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
     CHAT_MODEL: str = os.getenv("CHAT_MODEL", "google/gemini-2.0-flash-001")
